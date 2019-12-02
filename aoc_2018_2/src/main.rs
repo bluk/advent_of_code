@@ -1,9 +1,40 @@
-use std::collections::HashMap;
 use std::io::{self};
 
+fn find_off_by(a: &str, b: &str) -> usize {
+    let mut off_by = 0;
+    if a.len() != b.len() {
+        if a.len() > b.len() {
+            off_by = a.len() - b.len();
+        } else {
+            off_by = b.len() - a.len();
+        }
+    }
+
+    let chars = a.chars().zip(b.chars());
+    for (a, b) in chars {
+        if a != b {
+            off_by += 1;
+        }
+    }
+
+    off_by
+}
+
+fn common_chars(a: &str, b: &str) -> String {
+    let mut ret = String::from("");
+
+    let chars = a.chars().zip(b.chars());
+    for (a, b) in chars {
+        if a == b {
+            ret.push(a);
+        }
+    }
+
+    ret
+}
+
 fn main() {
-    let mut contains_two_total = 0;
-    let mut contains_three_total = 0;
+    let mut ids = Vec::<String>::new();
 
     loop {
         let mut input = String::new();
@@ -13,29 +44,15 @@ fn main() {
                     break;
                 }
 
-                let mut chars = HashMap::new();
-                for c in input.trim().chars() {
-                    *chars.entry(c).or_insert(0) += 1;
+                for i in ids.iter() {
+                    let off_by_count = find_off_by(i, &input);
+                    if off_by_count <= 1 {
+                        println!("{}", common_chars(i, &input));
+                        return;
+                    }
                 }
 
-                let (contains_two, contains_three) =
-                    chars.values().fold((false, false), |result, v| {
-                        if *v == 2 {
-                            (true, result.1)
-                        } else if *v == 3 {
-                            (result.0, true)
-                        } else {
-                            result
-                        }
-                    });
-
-                if contains_two {
-                    contains_two_total += 1;
-                }
-
-                if contains_three {
-                    contains_three_total += 1;
-                }
+                ids.push(input);
             }
             Err(e) => {
                 eprintln!("error: {}", e);
@@ -43,6 +60,4 @@ fn main() {
             }
         }
     }
-
-    println!("{}", contains_two_total * contains_three_total);
 }
