@@ -18,5 +18,10 @@ fn main() -> Result<(), Error> {
 
     println!("Total Orbits: {:?}", orbit_map.total_orbits());
 
+    println!(
+        "Orbital Transfers Between YOU and SAN: {:?}",
+        orbit_map.orbital_transfers_between("YOU", "SAN")
+    );
+
     Ok(())
 }

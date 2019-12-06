@@ -18,7 +18,7 @@ impl OrbitMap {
             .insert(object.to_string(), object_orbits.to_string());
     }
 
-    pub fn orbits_for(&self, object: &str) -> Option<usize> {
+    fn orbits_for(&self, object: &str) -> Option<usize> {
         let mut orbits = 0;
         let mut cur_obj = object;
         while let Some(object_orbits) = self.map.get(cur_obj) {
@@ -40,6 +40,42 @@ impl OrbitMap {
         } else {
             Some(total_orbits)
         }
+    }
+
+    fn orbits_to_com_for(&self, object: &str) -> Option<Vec<&str>> {
+        let mut objects_orbited: Vec<&str> = Vec::new();
+
+        let mut cur_obj = object;
+        while let Some(object_orbits) = self.map.get(cur_obj) {
+            objects_orbited.push(object_orbits);
+            cur_obj = object_orbits;
+        }
+
+        if objects_orbited.is_empty() {
+            None
+        } else {
+            Some(objects_orbited)
+        }
+    }
+
+    pub fn orbital_transfers_between(&self, you: &str, san: &str) -> Option<usize> {
+        if let Some(you_orbits_to_com) = self.orbits_to_com_for(you) {
+            if let Some(san_orbits_to_com) = self.orbits_to_com_for(san) {
+                let common: usize = you_orbits_to_com
+                    .iter()
+                    .rev()
+                    .zip(san_orbits_to_com.iter().rev())
+                    .map(|(y, s)| if y == s { 1 } else { 0 })
+                    .sum();
+
+                let transfers =
+                    (you_orbits_to_com.len() - common) + (san_orbits_to_com.len() - common);
+
+                return Some(transfers);
+            }
+        }
+
+        None
     }
 }
 
@@ -88,5 +124,32 @@ K)L
         assert_eq!(orbit_map.orbits_for("L"), Some(7));
         assert_eq!(orbit_map.orbits_for("COM"), None);
         assert_eq!(orbit_map.total_orbits(), Some(42));
+    }
+
+    #[test]
+    fn ex2() {
+        let mut orbit_map = OrbitMap::new();
+
+        let input = "COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN";
+
+        input
+            .trim()
+            .split('\n')
+            .map(|s| parse_orbit(s))
+            .for_each(|(object_orbits, object)| orbit_map.insert(object, object_orbits));
+
+        assert_eq!(orbit_map.orbital_transfers_between("YOU", "SAN"), Some(4));
     }
 }
