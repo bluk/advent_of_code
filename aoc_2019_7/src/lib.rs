@@ -21,7 +21,7 @@ pub trait ProgOutput {
 }
 
 /// Reads in program input from stdin.
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Hash, Eq, PartialEq)]
 pub struct StdInProgInput {}
 
 impl StdInProgInput {
@@ -39,7 +39,7 @@ impl ProgInput for StdInProgInput {
 }
 
 /// Writes program output to stdout.
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Hash, Eq, PartialEq)]
 pub struct StdOutProgOutput {}
 
 impl StdOutProgOutput {
@@ -363,8 +363,7 @@ fn run_amplifiers_in_feedback_loop(
 
     let mut amps = Vec::<Amp>::with_capacity(inputs.len());
     for input in inputs {
-        let mut mem_state = Vec::with_capacity(init_mem_state.len());
-        mem_state.resize(init_mem_state.len(), 0);
+        let mut mem_state = vec![0; init_mem_state.len()];
         mem_state.copy_from_slice(init_mem_state);
 
         let mut prog_input = VecDequeProgInput::new();
@@ -381,9 +380,7 @@ fn run_amplifiers_in_feedback_loop(
 
     let mut prog_output = VecProgOutput::new();
     loop {
-        for index in 0..inputs.len() {
-            let amp = &mut amps[index];
-
+        for amp in &mut amps {
             prog_output.data.iter().for_each(|o| {
                 amp.prog_input.data.push_back(o.to_string());
             });
