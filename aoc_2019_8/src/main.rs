@@ -10,5 +10,7 @@ fn main() -> Result<(), Error> {
     let img = SpaceImg::new(input, 25, 6);
     println!("{}", img.verify()?);
 
+    aoc_2019_8::display(img.compose()?, 25, 6);
+
     Ok(())
 }

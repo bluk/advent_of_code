@@ -90,6 +90,32 @@ impl SpaceImg {
 
         Ok(verification)
     }
+
+    pub fn compose(&self) -> Result<Vec<u8>, Error> {
+        Ok(self
+            .layers_iter()
+            .fold(vec![2; self.width * self.height], |final_img, layer| {
+                layer
+                    .iter()
+                    .zip(final_img.into_iter())
+                    .map(|(l, f)| if f == 2 { *l } else { f })
+                    .collect()
+            }))
+    }
+}
+
+pub fn display(pixels: Vec<u8>, width: usize, height: usize) {
+    for row in 0..height {
+        for col in 0..width {
+            let color = pixels[col + row * width];
+            match color {
+                0 => print!(" "),
+                1 => print!("X"),
+                _ => unreachable!(),
+            }
+        }
+        println!();
+    }
 }
 
 #[cfg(test)]
@@ -105,5 +131,19 @@ mod tests {
         assert_eq!(Some(&vec![1, 2, 3, 4, 5, 6][..]), layers.next());
         assert_eq!(Some(&vec![7, 8, 9, 0, 1, 2][..]), layers.next());
         assert_eq!(None, layers.next());
+    }
+
+    #[test]
+    fn day8_ex2() {
+        let input = parse_input("0222112222120000").unwrap();
+        let img = SpaceImg::new(input, 2, 2);
+
+        let composed_img = img.compose().unwrap();
+
+        assert_eq!(composed_img[0], 0);
+        assert_eq!(composed_img[1], 1);
+        assert_eq!(composed_img[2], 1);
+        assert_eq!(composed_img[3], 0);
+        assert_eq!(composed_img.len(), 4);
     }
 }
