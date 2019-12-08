@@ -9,6 +9,7 @@ pub enum Error {
     IoErr(io::Error),
     ParseNumError(num::ParseIntError),
     TryFromIntError(num::TryFromIntError),
+    NoAvailableInput,
 }
 
 impl error::Error for Error {}
@@ -19,6 +20,7 @@ impl Display for Error {
             Error::IoErr(e) => Display::fmt(&*e, f),
             Error::ParseNumError(e) => Display::fmt(&*e, f),
             Error::TryFromIntError(e) => Display::fmt(&*e, f),
+            Error::NoAvailableInput => f.write_str("no available input"),
         }
     }
 }

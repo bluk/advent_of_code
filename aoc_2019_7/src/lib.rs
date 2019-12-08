@@ -152,80 +152,92 @@ fn get_operand(
     }
 }
 
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum ProgState {
+    Halt,
+    NeedInput(usize),
+}
+
 /// Runs a program given an initial memory state.
-pub fn run_prog<T, S>(mem_state: &mut [i64], input: &mut T, output: &mut S) -> Result<(), Error>
+pub fn run_prog<T, S>(
+    mem_state: &mut [i64],
+    mut pc: usize,
+    input: &mut T,
+    output: &mut S,
+) -> Result<ProgState, Error>
 where
     T: ProgInput,
     S: ProgOutput,
 {
-    let mut idx = 0;
     loop {
-        match decode_op_code(mem_state[idx]) {
+        match decode_op_code(mem_state[pc]) {
             OpCode::Add(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
-                let store_idx = usize::try_from(mem_state[idx + 3])?;
-                mem_state[store_idx] = operand_0 + operand_1;
-                idx += 4;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let store_pc = usize::try_from(mem_state[pc + 3])?;
+                mem_state[store_pc] = operand_0 + operand_1;
+                pc += 4;
             }
             OpCode::Mul(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
-                let store_idx = usize::try_from(mem_state[idx + 3])?;
-                mem_state[store_idx] = operand_0 * operand_1;
-                idx += 4;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let store_pc = usize::try_from(mem_state[pc + 3])?;
+                mem_state[store_pc] = operand_0 * operand_1;
+                pc += 4;
             }
             OpCode::Input => {
-                let input = input.read()?;
+                let input = match input.read() {
+                    Ok(v) => v,
+                    Err(Error::NoAvailableInput) => return Ok(ProgState::NeedInput(pc)),
+                    Err(e) => return Err(e),
+                };
                 let input = input.trim().parse::<i64>()?;
 
-                let store_idx = usize::try_from(mem_state[idx + 1])?;
-                mem_state[store_idx] = input;
-                idx += 2;
+                let store_pc = usize::try_from(mem_state[pc + 1])?;
+                mem_state[store_pc] = input;
+                pc += 2;
             }
             OpCode::Output(param_mode_0) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
                 output.write(&format!("{}", operand_0))?;
-                idx += 2;
+                pc += 2;
             }
             OpCode::JumpIfTrue(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
                 if operand_0 != 0 {
-                    let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
-                    idx = usize::try_from(operand_1)?;
+                    let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                    pc = usize::try_from(operand_1)?;
                 } else {
-                    idx += 3;
+                    pc += 3;
                 }
             }
             OpCode::JumpIfFalse(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
                 if operand_0 == 0 {
-                    let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
-                    idx = usize::try_from(operand_1)?;
+                    let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                    pc = usize::try_from(operand_1)?;
                 } else {
-                    idx += 3;
+                    pc += 3;
                 }
             }
             OpCode::LessThan(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
-                let store_idx = usize::try_from(mem_state[idx + 3])?;
-                mem_state[store_idx] = if operand_0 < operand_1 { 1 } else { 0 };
-                idx += 4;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let store_pc = usize::try_from(mem_state[pc + 3])?;
+                mem_state[store_pc] = if operand_0 < operand_1 { 1 } else { 0 };
+                pc += 4;
             }
             OpCode::Equals(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
-                let store_idx = usize::try_from(mem_state[idx + 3])?;
-                mem_state[store_idx] = if operand_0 == operand_1 { 1 } else { 0 };
-                idx += 4;
+                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let store_pc = usize::try_from(mem_state[pc + 3])?;
+                mem_state[store_pc] = if operand_0 == operand_1 { 1 } else { 0 };
+                pc += 4;
             }
 
-            OpCode::Halt => break,
+            OpCode::Halt => return Ok(ProgState::Halt),
         }
     }
-
-    Ok(())
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
@@ -241,7 +253,11 @@ impl StackProgInputOutput {
 
 impl ProgInput for StackProgInputOutput {
     fn read(&mut self) -> Result<String, Error> {
-        Ok(self.data.pop().unwrap())
+        if let Some(value) = self.data.pop() {
+            Ok(value)
+        } else {
+            Err(Error::NoAvailableInput)
+        }
     }
 }
 
@@ -313,7 +329,7 @@ fn run_amplifiers(init_mem_state: &[i64], inputs: &[i64]) -> Result<Option<i64>,
 
         let mut out_stack = StackProgInputOutput::new();
 
-        run_prog(&mut *mem_state.clone(), &mut stack, &mut out_stack)?;
+        run_prog(&mut *mem_state.clone(), 0, &mut stack, &mut out_stack)?;
 
         stack = out_stack;
     }
@@ -383,12 +399,16 @@ mod tests {
     fn day2_ex1() {
         let mut mem_state = vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert!(test_output.output.is_empty());
         assert_eq!(
@@ -401,12 +421,16 @@ mod tests {
     fn day2_ex2() {
         let mut mem_state = vec![1, 0, 0, 0, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert!(test_output.output.is_empty());
         assert_eq!(vec![2, 0, 0, 0, 99], mem_state);
@@ -416,12 +440,16 @@ mod tests {
     fn day2_ex3() {
         let mut mem_state = vec![2, 3, 0, 3, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert!(test_output.output.is_empty());
         assert_eq!(vec![2, 3, 0, 6, 99], mem_state);
@@ -431,12 +459,16 @@ mod tests {
     fn day2_ex4() {
         let mut mem_state = vec![2, 4, 4, 5, 99, 0];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert!(test_output.output.is_empty());
         assert_eq!(vec![2, 4, 4, 5, 99, 9801], mem_state);
@@ -446,12 +478,16 @@ mod tests {
     fn day2_ex5() {
         let mut mem_state = vec![1, 1, 1, 4, 99, 5, 6, 0, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert!(test_output.output.is_empty());
         assert_eq!(vec![30, 1, 1, 4, 2, 5, 6, 0, 99], mem_state);
@@ -462,12 +498,16 @@ mod tests {
         let mut mem_state = vec![3, 0, 4, 0, 99];
         let mut test_output = TestOutput::new();
         let x = String::from("42");
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![x.clone()]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![x.clone()]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec![x], test_output.output);
         assert_eq!(vec![42, 0, 4, 0, 99], mem_state);
@@ -477,12 +517,16 @@ mod tests {
     fn day5_ex2() {
         let mut mem_state = vec![1002, 4, 3, 4, 33];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert!(test_output.output.is_empty());
         assert_eq!(vec![1002, 4, 3, 4, 99], mem_state);
@@ -492,12 +536,16 @@ mod tests {
     fn day5_ex3() {
         let mut mem_state = vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("8")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("8")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1"], test_output.output);
         assert_eq!(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, 1, 8], mem_state);
@@ -507,12 +555,16 @@ mod tests {
     fn day5_ex5() {
         let mut mem_state = vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("7")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("7")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["0"], test_output.output);
         assert_eq!(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, 0, 8], mem_state);
@@ -522,12 +574,16 @@ mod tests {
     fn day5_ex6() {
         let mut mem_state = vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("8")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("8")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["0"], test_output.output);
         assert_eq!(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, 0, 8], mem_state);
@@ -537,12 +593,16 @@ mod tests {
     fn day5_ex7() {
         let mut mem_state = vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("7")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("7")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1"], test_output.output);
         assert_eq!(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, 1, 8], mem_state);
@@ -552,12 +612,16 @@ mod tests {
     fn day5_ex8() {
         let mut mem_state = vec![3, 3, 1108, -1, 8, 3, 4, 3, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("8")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("8")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1"], test_output.output);
         assert_eq!(vec![3, 3, 1108, 1, 8, 3, 4, 3, 99], mem_state);
@@ -567,12 +631,16 @@ mod tests {
     fn day5_ex9() {
         let mut mem_state = vec![3, 3, 1108, -1, 8, 3, 4, 3, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("7")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("7")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["0"], test_output.output);
         assert_eq!(vec![3, 3, 1108, 0, 8, 3, 4, 3, 99], mem_state);
@@ -582,12 +650,16 @@ mod tests {
     fn day5_ex10() {
         let mut mem_state = vec![3, 3, 1107, -1, 8, 3, 4, 3, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("8")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("8")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["0"], test_output.output);
         assert_eq!(vec![3, 3, 1107, 0, 8, 3, 4, 3, 99], mem_state);
@@ -597,12 +669,16 @@ mod tests {
     fn day5_ex11() {
         let mut mem_state = vec![3, 3, 1107, -1, 8, 3, 4, 3, 99];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("7")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("7")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1"], test_output.output);
         assert_eq!(vec![3, 3, 1107, 1, 8, 3, 4, 3, 99], mem_state);
@@ -612,12 +688,16 @@ mod tests {
     fn day5_ex12() {
         let mut mem_state = vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("0")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("0")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["0"], test_output.output);
         assert_eq!(
@@ -630,12 +710,16 @@ mod tests {
     fn day5_ex13() {
         let mut mem_state = vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("1")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("1")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1"], test_output.output);
         assert_eq!(
@@ -648,12 +732,16 @@ mod tests {
     fn day5_ex14() {
         let mut mem_state = vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("0")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("0")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["0"], test_output.output);
         assert_eq!(
@@ -666,12 +754,16 @@ mod tests {
     fn day5_ex15() {
         let mut mem_state = vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("1")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("1")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1"], test_output.output);
         assert_eq!(
@@ -688,12 +780,16 @@ mod tests {
             20, 1105, 1, 46, 98, 99,
         ];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("7")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("7")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["999"], test_output.output);
         assert_eq!(
@@ -714,12 +810,16 @@ mod tests {
             20, 1105, 1, 46, 98, 99,
         ];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("8")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("8")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1000"], test_output.output);
         assert_eq!(
@@ -740,12 +840,16 @@ mod tests {
             20, 1105, 1, 46, 98, 99,
         ];
         let mut test_output = TestOutput::new();
-        run_prog(
-            &mut mem_state,
-            &mut TestInput::new(vec![String::from("9")]),
-            &mut test_output,
-        )
-        .unwrap();
+        assert_eq!(
+            ProgState::Halt,
+            run_prog(
+                &mut mem_state,
+                0,
+                &mut TestInput::new(vec![String::from("9")]),
+                &mut test_output,
+            )
+            .unwrap()
+        );
 
         assert_eq!(vec!["1001"], test_output.output);
         assert_eq!(
