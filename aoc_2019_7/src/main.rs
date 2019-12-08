@@ -10,5 +10,8 @@ fn main() -> Result<(), Error> {
     let result = aoc_2019_7::find_max_thrust_signal(&mut mem_state)?;
     println!("{:?}", result);
 
+    let result = aoc_2019_7::find_max_thrust_signal_in_feedback_loop(&mut mem_state)?;
+    println!("{:?}", result);
+
     Ok(())
 }

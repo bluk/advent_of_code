@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::convert::TryFrom;
 use std::io;
 
@@ -241,19 +242,21 @@ where
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct StackProgInputOutput {
-    data: Vec<String>,
+struct VecDequeProgInput {
+    data: VecDeque<String>,
 }
 
-impl StackProgInputOutput {
-    pub fn new() -> Self {
-        StackProgInputOutput { data: Vec::new() }
+impl VecDequeProgInput {
+    fn new() -> Self {
+        VecDequeProgInput {
+            data: VecDeque::new(),
+        }
     }
 }
 
-impl ProgInput for StackProgInputOutput {
+impl ProgInput for VecDequeProgInput {
     fn read(&mut self) -> Result<String, Error> {
-        if let Some(value) = self.data.pop() {
+        if let Some(value) = self.data.pop_front() {
             Ok(value)
         } else {
             Err(Error::NoAvailableInput)
@@ -261,7 +264,18 @@ impl ProgInput for StackProgInputOutput {
     }
 }
 
-impl ProgOutput for StackProgInputOutput {
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+struct VecProgOutput {
+    data: Vec<String>,
+}
+
+impl VecProgOutput {
+    fn new() -> Self {
+        VecProgOutput { data: Vec::new() }
+    }
+}
+
+impl ProgOutput for VecProgOutput {
     fn write(&mut self, output: &str) -> Result<(), Error> {
         self.data.push(output.to_string());
         Ok(())
@@ -303,7 +317,7 @@ pub fn find_max_thrust_signal(init_mem_state: &[i64]) -> Result<Option<(Vec<i64>
     let mut max_result: Option<(Vec<i64>, i64)> = None;
 
     for inputs in build_input(&[], 0..5, 5) {
-        if let Some(thrust_signal) = run_amplifiers(init_mem_state, &inputs)? {
+        if let Some(thrust_signal) = run_amplifiers_in_feedback_loop(init_mem_state, &inputs)? {
             if let Some(exist_result) = max_result.as_ref() {
                 if exist_result.1 < thrust_signal {
                     max_result = Some((inputs, thrust_signal));
@@ -317,24 +331,81 @@ pub fn find_max_thrust_signal(init_mem_state: &[i64]) -> Result<Option<(Vec<i64>
     Ok(max_result)
 }
 
-fn run_amplifiers(init_mem_state: &[i64], inputs: &[i64]) -> Result<Option<i64>, Error> {
-    let mut stack = StackProgInputOutput::new();
-    stack.write(&0.to_string())?;
+pub fn find_max_thrust_signal_in_feedback_loop(
+    init_mem_state: &[i64],
+) -> Result<Option<(Vec<i64>, i64)>, Error> {
+    let mut max_result: Option<(Vec<i64>, i64)> = None;
 
-    for input in inputs.iter() {
-        stack.write(&input.to_string())?;
-
-        let mut mem_state = Vec::<i64>::new();
-        mem_state.extend_from_slice(&init_mem_state);
-
-        let mut out_stack = StackProgInputOutput::new();
-
-        run_prog(&mut *mem_state.clone(), 0, &mut stack, &mut out_stack)?;
-
-        stack = out_stack;
+    for inputs in build_input(&[], 5..10, 5) {
+        if let Some(thrust_signal) = run_amplifiers_in_feedback_loop(init_mem_state, &inputs)? {
+            if let Some(exist_result) = max_result.as_ref() {
+                if exist_result.1 < thrust_signal {
+                    max_result = Some((inputs, thrust_signal));
+                }
+            } else {
+                max_result = Some((inputs, thrust_signal));
+            }
+        }
     }
 
-    Ok(Some(stack.read()?.parse::<i64>()?))
+    Ok(max_result)
+}
+
+fn run_amplifiers_in_feedback_loop(
+    init_mem_state: &[i64],
+    inputs: &[i64],
+) -> Result<Option<i64>, Error> {
+    struct Amp {
+        mem_state: Vec<i64>,
+        prog_state: Option<ProgState>,
+        prog_input: VecDequeProgInput,
+    }
+
+    let mut amps = Vec::<Amp>::with_capacity(inputs.len());
+    for input in inputs {
+        let mut mem_state = Vec::with_capacity(init_mem_state.len());
+        mem_state.resize(init_mem_state.len(), 0);
+        mem_state.copy_from_slice(init_mem_state);
+
+        let mut prog_input = VecDequeProgInput::new();
+        prog_input.data.push_back(input.to_string());
+
+        amps.push(Amp {
+            mem_state,
+            prog_state: None,
+            prog_input,
+        });
+    }
+
+    amps[0].prog_input.data.push_back(0.to_string());
+
+    let mut prog_output = VecProgOutput::new();
+    loop {
+        for index in 0..inputs.len() {
+            let amp = &mut amps[index];
+
+            prog_output.data.iter().for_each(|o| {
+                amp.prog_input.data.push_back(o.to_string());
+            });
+
+            prog_output = VecProgOutput::new();
+
+            amp.prog_state = Some(run_prog(
+                &mut amp.mem_state,
+                amp.prog_state.map_or(0, |state| match state {
+                    ProgState::Halt => panic!("trying to run a halted program"),
+                    ProgState::NeedInput(pc) => pc,
+                }),
+                &mut amp.prog_input,
+                &mut prog_output,
+            )?);
+        }
+
+        if amps[amps.len() - 1].prog_state == Some(ProgState::Halt) {
+            assert!(amps.iter().all(|a| a.prog_state == Some(ProgState::Halt)));
+            return Ok(Some(prog_output.data.pop().unwrap().parse::<i64>()?));
+        }
+    }
 }
 
 #[cfg(test)]
@@ -901,7 +972,7 @@ mod tests {
         let mut mem_state = vec![
             3, 15, 3, 16, 1002, 16, 10, 16, 1, 16, 15, 15, 4, 15, 99, 0, 0,
         ];
-        let result = run_amplifiers(&mut mem_state, &[4, 3, 2, 1, 0]).unwrap();
+        let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[4, 3, 2, 1, 0]).unwrap();
 
         assert_eq!(result, Some(43210));
     }
@@ -923,7 +994,7 @@ mod tests {
             3, 23, 3, 24, 1002, 24, 10, 24, 1002, 23, -1, 23, 101, 5, 23, 23, 1, 24, 23, 23, 4, 23,
             99, 0, 0,
         ];
-        let result = run_amplifiers(&mut mem_state, &[0, 1, 2, 3, 4]).unwrap();
+        let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[0, 1, 2, 3, 4]).unwrap();
 
         assert_eq!(result, Some(54321));
     }
@@ -946,7 +1017,7 @@ mod tests {
             3, 31, 3, 32, 1002, 32, 10, 32, 1001, 31, -2, 31, 1007, 31, 0, 33, 1002, 33, 7, 33, 1,
             33, 31, 31, 1, 32, 31, 31, 4, 31, 99, 0, 0, 0,
         ];
-        let result = run_amplifiers(&mut mem_state, &[1, 0, 4, 3, 2]).unwrap();
+        let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[1, 0, 4, 3, 2]).unwrap();
 
         assert_eq!(result, Some(65210));
     }
@@ -961,5 +1032,59 @@ mod tests {
 
         assert_eq!(result.0, vec![1, 0, 4, 3, 2]);
         assert_eq!(result.1, 65210);
+    }
+
+    #[test]
+    fn day7_ex7() {
+        let mut mem_state = vec![
+            3, 26, 1001, 26, -4, 26, 3, 27, 1002, 27, 2, 27, 1, 27, 26, 27, 4, 27, 1001, 28, -1,
+            28, 1005, 28, 6, 99, 0, 0, 5,
+        ];
+
+        let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[9, 8, 7, 6, 5]).unwrap();
+
+        assert_eq!(result, Some(139629729));
+    }
+
+    #[test]
+    fn day7_ex8() {
+        let mut mem_state = vec![
+            3, 26, 1001, 26, -4, 26, 3, 27, 1002, 27, 2, 27, 1, 27, 26, 27, 4, 27, 1001, 28, -1,
+            28, 1005, 28, 6, 99, 0, 0, 5,
+        ];
+        let result = find_max_thrust_signal_in_feedback_loop(&mut mem_state)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(result.0, vec![9, 8, 7, 6, 5]);
+        assert_eq!(result.1, 139629729);
+    }
+
+    #[test]
+    fn day7_ex9() {
+        let mut mem_state = vec![
+            3, 52, 1001, 52, -5, 52, 3, 53, 1, 52, 56, 54, 1007, 54, 5, 55, 1005, 55, 26, 1001, 54,
+            -5, 54, 1105, 1, 12, 1, 53, 54, 53, 1008, 54, 0, 55, 1001, 55, 1, 55, 2, 53, 55, 53, 4,
+            53, 1001, 56, -1, 56, 1005, 56, 6, 99, 0, 0, 0, 0, 10,
+        ];
+
+        let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[9, 7, 8, 5, 6]).unwrap();
+
+        assert_eq!(result, Some(18216));
+    }
+
+    #[test]
+    fn day7_ex10() {
+        let mut mem_state = vec![
+            3, 52, 1001, 52, -5, 52, 3, 53, 1, 52, 56, 54, 1007, 54, 5, 55, 1005, 55, 26, 1001, 54,
+            -5, 54, 1105, 1, 12, 1, 53, 54, 53, 1008, 54, 0, 55, 1001, 55, 1, 55, 2, 53, 55, 53, 4,
+            53, 1001, 56, -1, 56, 1005, 56, 6, 99, 0, 0, 0, 0, 10,
+        ];
+        let result = find_max_thrust_signal_in_feedback_loop(&mut mem_state)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(result.0, vec![9, 7, 8, 5, 6]);
+        assert_eq!(result.1, 18216);
     }
 }
