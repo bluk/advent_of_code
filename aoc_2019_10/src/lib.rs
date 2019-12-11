@@ -1,4 +1,5 @@
 use error::Error;
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 
 pub mod error;
@@ -48,6 +49,10 @@ struct Dir {
 impl Dir {
     fn len(&self) -> f64 {
         ((self.dx.pow(2) + self.dy.pow(2)) as f64).sqrt()
+    }
+
+    fn angle(&self) -> f64 {
+        (self.dy as f64).atan2(self.dx as f64)
     }
 }
 
@@ -122,6 +127,82 @@ pub fn find_best_monitoring_pos(map: &[Pos]) -> Result<Option<(&Pos, usize)>, Er
             }
         },
     ))
+}
+
+fn sort_asteriods(starting_pos: &Pos, asteriods: &mut [Pos]) {
+    asteriods.sort_by(|&a, &b| {
+        let mut aa =
+            (a.dir_from(*starting_pos).unwrap().angle() - std::f64::consts::FRAC_PI_2) * -1.0;
+        if aa < 0.0 {
+            aa += 2.0 * std::f64::consts::PI;
+        }
+        let mut ba =
+            (b.dir_from(*starting_pos).unwrap().angle() - std::f64::consts::FRAC_PI_2) * -1.0;
+        if ba < 0.0 {
+            ba += 2.0 * std::f64::consts::PI;
+        }
+        if aa == ba {
+            return Ordering::Equal;
+        }
+
+        if aa == f64::min(aa, ba) {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+}
+
+pub struct VaporizeIter {
+    map: Vec<Pos>,
+    starting_pos: Pos,
+    cur_pass: Option<Vec<Pos>>,
+}
+
+impl VaporizeIter {
+    pub fn new(starting_pos: &Pos, map: &[Pos]) -> Self {
+        let mut m = Vec::with_capacity(map.len());
+        m.extend_from_slice(map);
+        VaporizeIter {
+            map: m,
+            starting_pos: *starting_pos,
+            cur_pass: None,
+        }
+    }
+}
+
+impl Iterator for VaporizeIter {
+    type Item = Pos;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(cur_pass) = self.cur_pass.as_mut() {
+            let ret = cur_pass.pop();
+            if ret.is_some() {
+                return ret;
+            }
+            self.cur_pass = None;
+        }
+
+        if self.map.is_empty() {
+            return None;
+        }
+
+        let mut asteriods = detectable_asteriods(&self.starting_pos, &self.map).unwrap();
+        sort_asteriods(&self.starting_pos, &mut asteriods);
+
+        self.map = self
+            .map
+            .iter()
+            .copied()
+            .filter(|p| !asteriods.contains(p))
+            .collect();
+
+        asteriods.reverse();
+
+        let ret = asteriods.pop();
+        self.cur_pass = Some(asteriods);
+        ret
+    }
 }
 
 #[cfg(test)]
@@ -231,5 +312,97 @@ mod tests {
             find_best_monitoring_pos(&map).unwrap().unwrap(),
             (&Pos { x: 11, y: 13 }, 210)
         );
+    }
+
+    #[test]
+    fn test_sort() {
+        let starting_pos = Pos { x: 11, y: 13 };
+        let mut asteriods = [
+            Pos { x: 14, y: 15 },
+            Pos { x: 11, y: 12 },
+            Pos { x: 12, y: 13 },
+            Pos { x: 10, y: 16 },
+            Pos { x: 10, y: 10 },
+            Pos { x: 12, y: 10 },
+            Pos { x: 10, y: 13 },
+            Pos { x: 11, y: 14 },
+        ];
+        sort_asteriods(&starting_pos, &mut asteriods);
+        assert_eq!(
+            [
+                Pos { x: 11, y: 12 },
+                Pos { x: 12, y: 10 },
+                Pos { x: 12, y: 13 },
+                Pos { x: 14, y: 15 },
+                Pos { x: 11, y: 14 },
+                Pos { x: 10, y: 16 },
+                Pos { x: 10, y: 13 },
+                Pos { x: 10, y: 10 },
+            ],
+            asteriods
+        );
+    }
+
+    #[test]
+    fn day10_ex5() {
+        let input = "
+.#..##.###...#######
+##.############..##.
+.#.######.########.#
+.###.#######.####.#.
+#####.##.#.##.###.##
+..#####..#.#########
+####################
+#.####....###.#.#.##
+##.#################
+#####.##.###..####..
+..######..##.#######
+####.##.####...##..#
+.#####..#.######.###
+##...#.##########...
+#.##########.#######
+.####.#.###.###.#.##
+....##.##.###..#####
+.#.#.###########.###
+#.#.#.#####.####.###
+###.##.####.##.#..##
+"
+        .trim();
+
+        let map = build_map(input).unwrap();
+
+        assert_eq!(
+            find_best_monitoring_pos(&map).unwrap().unwrap(),
+            (&Pos { x: 11, y: 13 }, 210)
+        );
+
+        let starting_pos = Pos { x: 11, y: 13 };
+
+        let mut iter = VaporizeIter::new(&starting_pos, &map);
+        assert_eq!(iter.next(), Some(Pos { x: 11, y: 12 }));
+        assert_eq!(iter.next(), Some(Pos { x: 12, y: 1 }));
+        assert_eq!(iter.next(), Some(Pos { x: 12, y: 2 }));
+
+        let mut iter = iter.skip(6);
+        assert_eq!(iter.next(), Some(Pos { x: 12, y: 8 }));
+
+        let mut iter = iter.skip(9);
+        assert_eq!(iter.next(), Some(Pos { x: 16, y: 0 }));
+
+        let mut iter = iter.skip(29);
+        assert_eq!(iter.next(), Some(Pos { x: 16, y: 9 }));
+
+        let mut iter = iter.skip(49);
+        assert_eq!(iter.next(), Some(Pos { x: 10, y: 16 }));
+
+        let mut iter = iter.skip(98);
+        assert_eq!(iter.next(), Some(Pos { x: 9, y: 6 }));
+        assert_eq!(iter.next(), Some(Pos { x: 8, y: 2 }));
+        assert_eq!(iter.next(), Some(Pos { x: 10, y: 9 }));
+
+        let mut iter = iter.skip(97);
+        assert_eq!(iter.next(), Some(Pos { x: 11, y: 1 }));
+
+        assert_eq!(iter.next(), None);
     }
 }
