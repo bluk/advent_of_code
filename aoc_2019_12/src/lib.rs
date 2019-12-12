@@ -4,22 +4,22 @@ pub mod error;
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Pos {
-    x: i64,
-    y: i64,
-    z: i64,
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Vel {
-    x: i64,
-    y: i64,
-    z: i64,
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Moon {
-    pos: Pos,
-    vel: Vel,
+    pub pos: Pos,
+    pub vel: Vel,
 }
 
 impl Moon {
@@ -126,6 +126,43 @@ pub fn total_energy(moons: &[Moon]) -> i64 {
             pe * ke
         })
         .sum()
+}
+
+pub fn find_cycle(axis_pos: Vec<i64>) -> i64 {
+    let mut moons = axis_pos
+        .into_iter()
+        .map(|p| (p, 0))
+        .collect::<Vec<(i64, i64)>>();
+    let init_moons = moons.clone();
+
+    let mut step = 1;
+
+    loop {
+        moons = moons
+            .iter()
+            .copied()
+            .map(|mut nm| {
+                moons.iter().for_each(|m| {
+                    if nm.0 < m.0 {
+                        nm.1 += 1;
+                    } else if nm.0 > m.0 {
+                        nm.1 -= 1;
+                    }
+                });
+
+                nm.0 += nm.1;
+                nm
+            })
+            .collect();
+
+        if moons == init_moons {
+            break;
+        }
+
+        step += 1;
+    }
+
+    step
 }
 
 #[cfg(test)]

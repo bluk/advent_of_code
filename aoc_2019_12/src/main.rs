@@ -1,6 +1,7 @@
+use num::Integer;
 use std::io::{self};
 
-use aoc_2019_12::{self, error::Error, Moon, TimeStepIter};
+use aoc_2019_12::{self, error::Error, Moon};
 
 fn main() -> Result<(), Error> {
     let mut moons: Vec<Moon> = vec![];
@@ -16,10 +17,13 @@ fn main() -> Result<(), Error> {
         moons.push(moon);
     }
 
-    let iter = TimeStepIter::new(moons);
-    let mut iter = iter.skip(999);
-    let moons = iter.next().unwrap();
-    println!("{}", aoc_2019_12::total_energy(&moons));
+    let x_cycle = aoc_2019_12::find_cycle(moons.iter().map(|m| m.pos.x).collect());
+    let y_cycle = aoc_2019_12::find_cycle(moons.iter().map(|m| m.pos.y).collect());
+    let z_cycle = aoc_2019_12::find_cycle(moons.iter().map(|m| m.pos.z).collect());
+
+    let min_cycle = x_cycle.lcm(&y_cycle).lcm(&z_cycle);
+
+    println!("{}", min_cycle);
 
     Ok(())
 }
