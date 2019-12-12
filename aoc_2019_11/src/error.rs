@@ -10,6 +10,7 @@ pub enum Error {
     ParseNumError(num::ParseIntError),
     TryFromIntError(num::TryFromIntError),
     NoAvailableInput,
+    UnknownValue,
 }
 
 impl error::Error for Error {}
@@ -21,6 +22,7 @@ impl Display for Error {
             Error::ParseNumError(e) => Display::fmt(&*e, f),
             Error::TryFromIntError(e) => Display::fmt(&*e, f),
             Error::NoAvailableInput => f.write_str("no available input"),
+            Error::UnknownValue => f.write_str("unknown value"),
         }
     }
 }

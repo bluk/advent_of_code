@@ -298,19 +298,21 @@ impl ProgInput for VecDequeProgInput {
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
-struct VecProgOutput {
-    data: Vec<String>,
+struct VecDequeProgOutput {
+    data: VecDeque<String>,
 }
 
-impl VecProgOutput {
+impl VecDequeProgOutput {
     fn new() -> Self {
-        VecProgOutput { data: Vec::new() }
+        VecDequeProgOutput {
+            data: VecDeque::new(),
+        }
     }
 }
 
-impl ProgOutput for VecProgOutput {
+impl ProgOutput for VecDequeProgOutput {
     fn write(&mut self, output: &str) -> Result<(), Error> {
-        self.data.push(output.to_string());
+        self.data.push_back(output.to_string());
         Ok(())
     }
 }
@@ -409,23 +411,171 @@ fn run_amplifiers_in_feedback_loop(
 
     amps[0].prog_input.data.push_back(0.to_string());
 
-    let mut prog_output = VecProgOutput::new();
+    let mut prog_output = VecDequeProgOutput::new();
     loop {
         for amp in &mut amps {
             prog_output.data.iter().for_each(|o| {
                 amp.prog_input.data.push_back(o.to_string());
             });
 
-            prog_output = VecProgOutput::new();
+            prog_output = VecDequeProgOutput::new();
 
             amp.prog.run(&mut amp.prog_input, &mut prog_output)?;
         }
 
         if amps[amps.len() - 1].prog.state == ProgState::Halt {
             assert!(amps.iter().all(|a| a.prog.state == ProgState::Halt));
-            return Ok(Some(prog_output.data.pop().unwrap().parse::<i64>()?));
+            return Ok(Some(prog_output.data.pop_front().unwrap().parse::<i64>()?));
         }
     }
+}
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum Color {
+    Black,
+    White,
+}
+
+impl TryFrom<String> for Color {
+    type Error = Error;
+
+    fn try_from(other: String) -> Result<Self, Self::Error> {
+        if other == "0" {
+            Ok(Color::Black)
+        } else if other == "1" {
+            Ok(Color::White)
+        } else {
+            Err(Error::UnknownValue)
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+enum TurnDir {
+    Left,
+    Right,
+}
+
+impl TryFrom<String> for TurnDir {
+    type Error = Error;
+
+    fn try_from(other: String) -> Result<Self, Self::Error> {
+        if other == "0" {
+            Ok(TurnDir::Left)
+        } else if other == "1" {
+            Ok(TurnDir::Right)
+        } else {
+            Err(Error::UnknownValue)
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+enum RobotDir {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl RobotDir {
+    fn turn(&self, dir: TurnDir) -> RobotDir {
+        match (self, dir) {
+            (RobotDir::Up, TurnDir::Left) => RobotDir::Left,
+            (RobotDir::Up, TurnDir::Right) => RobotDir::Right,
+            (RobotDir::Left, TurnDir::Left) => RobotDir::Down,
+            (RobotDir::Left, TurnDir::Right) => RobotDir::Up,
+            (RobotDir::Down, TurnDir::Left) => RobotDir::Right,
+            (RobotDir::Down, TurnDir::Right) => RobotDir::Left,
+            (RobotDir::Right, TurnDir::Left) => RobotDir::Up,
+            (RobotDir::Right, TurnDir::Right) => RobotDir::Down,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Pos {
+    x: isize,
+    y: isize,
+}
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Panel {
+    pos: Pos,
+    color: Color,
+}
+
+pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
+    let mut robot_dir = RobotDir::Up;
+    let mut robot_pos = Pos { x: 0, y: 0 };
+    let mut panels = Vec::<Panel>::new();
+
+    let mut input = VecDequeProgInput::new();
+    let mut output = VecDequeProgOutput::new();
+
+    loop {
+        let index = panels.iter().position(|p| p.pos == robot_pos);
+        let color = if let Some(index) = index {
+            panels[index].color
+        } else {
+            Color::Black
+        };
+
+        input.data.push_back(match color {
+            Color::Black => "0".to_string(),
+            Color::White => "1".to_string(),
+        });
+        prog.run(&mut input, &mut output)?;
+
+        let panel = if let Some(index) = index {
+            panels.get_mut(index).unwrap()
+        } else {
+            let panel = Panel {
+                pos: robot_pos,
+                color: Color::Black,
+            };
+            panels.push(panel);
+            panels.last_mut().unwrap()
+        };
+
+        let mut got_output = false;
+
+        if let Some(v) = output.data.pop_front() {
+            got_output = true;
+            let color = Color::try_from(v)?;
+            panel.color = color;
+        } else {
+            assert!(false);
+        }
+
+        if let Some(v) = output.data.pop_front() {
+            assert!(got_output);
+            let turn_dir = TurnDir::try_from(v)?;
+            robot_dir = robot_dir.turn(turn_dir);
+            match robot_dir {
+                RobotDir::Up => robot_pos.y += 1,
+                RobotDir::Left => robot_pos.x -= 1,
+                RobotDir::Down => robot_pos.y -= 1,
+                RobotDir::Right => robot_pos.x += 1,
+            }
+        } else {
+            assert!(false);
+        }
+
+        match prog.state {
+            ProgState::Halt => {
+                assert!(got_output);
+                break;
+            }
+            ProgState::NeedInput => assert!(got_output),
+            ProgState::NotStarted => unreachable!(),
+        }
+    }
+
+    assert!(input.data.is_empty());
+    assert!(output.data.is_empty());
+
+    Ok(panels)
 }
 
 #[cfg(test)]
