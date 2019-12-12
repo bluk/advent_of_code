@@ -518,7 +518,12 @@ pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
         let color = if let Some(index) = index {
             panels[index].color
         } else {
-            Color::Black
+            let start_pos = Pos { x: 0, y: 0 };
+            if robot_pos == start_pos {
+                Color::White
+            } else {
+                Color::Black
+            }
         };
 
         input.data.push_back(match color {
@@ -576,6 +581,41 @@ pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
     assert!(output.data.is_empty());
 
     Ok(panels)
+}
+
+use std::cmp::Ordering;
+
+pub fn display_panels(mut panels: Vec<Panel>) {
+    let max_x = panels.iter().map(|p| p.pos.x).max().unwrap();
+    let min_x = panels.iter().map(|p| p.pos.x).min().unwrap();
+    let max_y = panels.iter().map(|p| p.pos.y).max().unwrap();
+    let min_y = panels.iter().map(|p| p.pos.y).min().unwrap();
+
+    panels.sort_by(|a, b| {
+        if a.pos.y > b.pos.y {
+            Ordering::Less
+        } else if a.pos.y < b.pos.y {
+            Ordering::Greater
+        } else {
+            a.pos.x.cmp(&b.pos.x)
+        }
+    });
+
+    let rng = max_y - min_y;
+    for y in 0..=rng {
+        let y = max_y - y;
+        for x in min_x..=max_x {
+            if let Some(panel) = panels.iter().find(|p| p.pos == Pos { x, y }) {
+                match panel.color {
+                    Color::Black => print!(" "),
+                    Color::White => print!("*"),
+                }
+            } else {
+                print!(" ");
+            }
+        }
+        println!();
+    }
 }
 
 #[cfg(test)]

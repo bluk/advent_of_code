@@ -9,7 +9,7 @@ fn main() -> Result<(), Error> {
 
     let prog = Prog::new(&mem_state);
     let panels = aoc_2019_11::paint_hull(prog)?;
-    println!("{}", panels.len());
+    aoc_2019_11::display_panels(panels);
 
     Ok(())
 }
