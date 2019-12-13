@@ -18,6 +18,23 @@ pub trait ProgOutput {
     fn write(&mut self, output: &str) -> Result<(), Error>;
 }
 
+impl ProgInput for VecDeque<String> {
+    fn read(&mut self) -> Result<String, Error> {
+        if let Some(value) = self.pop_front() {
+            Ok(value)
+        } else {
+            Err(Error::NoAvailableInput)
+        }
+    }
+}
+
+impl ProgOutput for VecDeque<String> {
+    fn write(&mut self, output: &str) -> Result<(), Error> {
+        self.push_back(output.to_string());
+        Ok(())
+    }
+}
+
 /// Reads in program input from stdin.
 #[derive(Copy, Clone, Debug, Default, Hash, Eq, PartialEq)]
 pub struct StdInProgInput {}
@@ -273,49 +290,6 @@ impl Prog {
                 }
             }
         }
-    }
-}
-
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub(crate) struct VecDequeProgInput {
-    pub(crate) data: VecDeque<String>,
-}
-
-impl VecDequeProgInput {
-    pub(crate) fn new() -> Self {
-        VecDequeProgInput {
-            data: VecDeque::new(),
-        }
-    }
-}
-
-impl ProgInput for VecDequeProgInput {
-    fn read(&mut self) -> Result<String, Error> {
-        if let Some(value) = self.data.pop_front() {
-            Ok(value)
-        } else {
-            Err(Error::NoAvailableInput)
-        }
-    }
-}
-
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub(crate) struct VecDequeProgOutput {
-    pub(crate) data: VecDeque<String>,
-}
-
-impl VecDequeProgOutput {
-    pub(crate) fn new() -> Self {
-        VecDequeProgOutput {
-            data: VecDeque::new(),
-        }
-    }
-}
-
-impl ProgOutput for VecDequeProgOutput {
-    fn write(&mut self, output: &str) -> Result<(), Error> {
-        self.data.push_back(output.to_string());
-        Ok(())
     }
 }
 

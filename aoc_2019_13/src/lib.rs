@@ -1,4 +1,5 @@
 pub mod amp;
+pub mod arcade;
 pub mod error;
 pub mod hull_robot;
 pub mod intcode;

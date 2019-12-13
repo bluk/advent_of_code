@@ -1,7 +1,8 @@
+use std::collections::VecDeque;
 use std::ops::Range;
 
 use crate::error::Error;
-use crate::intcode::{Prog, ProgState, VecDequeProgInput, VecDequeProgOutput};
+use crate::intcode::{Prog, ProgState};
 
 fn build_input(existing_input: &[i64], rng: Range<i64>, count: i64) -> Vec<Vec<i64>> {
     if count <= 0 {
@@ -76,7 +77,7 @@ fn run_amplifiers_in_feedback_loop(
 ) -> Result<Option<i64>, Error> {
     struct Amp {
         prog: Prog,
-        prog_input: VecDequeProgInput,
+        prog_input: VecDeque<String>,
     }
 
     let mut amps = Vec::<Amp>::with_capacity(inputs.len());
@@ -84,8 +85,8 @@ fn run_amplifiers_in_feedback_loop(
         let mut mem_state = vec![0; init_mem_state.len()];
         mem_state.copy_from_slice(init_mem_state);
 
-        let mut prog_input = VecDequeProgInput::new();
-        prog_input.data.push_back(input.to_string());
+        let mut prog_input = VecDeque::new();
+        prog_input.push_back(input.to_string());
 
         amps.push(Amp {
             prog: Prog::new(&mem_state),
@@ -93,23 +94,23 @@ fn run_amplifiers_in_feedback_loop(
         });
     }
 
-    amps[0].prog_input.data.push_back(0.to_string());
+    amps[0].prog_input.push_back(0.to_string());
 
-    let mut prog_output = VecDequeProgOutput::new();
+    let mut prog_output = VecDeque::<String>::new();
     loop {
         for amp in &mut amps {
-            prog_output.data.iter().for_each(|o| {
-                amp.prog_input.data.push_back(o.to_string());
+            prog_output.iter().for_each(|o| {
+                amp.prog_input.push_back(o.to_string());
             });
 
-            prog_output = VecDequeProgOutput::new();
+            prog_output = VecDeque::<String>::new();
 
             amp.prog.run(&mut amp.prog_input, &mut prog_output)?;
         }
 
         if amps[amps.len() - 1].prog.state() == ProgState::Halt {
             assert!(amps.iter().all(|a| a.prog.state() == ProgState::Halt));
-            return Ok(Some(prog_output.data.pop_front().unwrap().parse::<i64>()?));
+            return Ok(Some(prog_output.pop_front().unwrap().parse::<i64>()?));
         }
     }
 }

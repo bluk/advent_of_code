@@ -1,8 +1,9 @@
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::convert::TryFrom;
 
 use crate::error::Error;
-use crate::intcode::{Prog, ProgState, VecDequeProgInput, VecDequeProgOutput};
+use crate::intcode::{Prog, ProgState};
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum Color {
@@ -84,8 +85,8 @@ pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
     let mut robot_pos = Pos { x: 0, y: 0 };
     let mut panels = Vec::<Panel>::new();
 
-    let mut input = VecDequeProgInput::new();
-    let mut output = VecDequeProgOutput::new();
+    let mut input = VecDeque::<String>::new();
+    let mut output = VecDeque::<String>::new();
 
     loop {
         let index = panels.iter().position(|p| p.pos == robot_pos);
@@ -100,7 +101,7 @@ pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
             }
         };
 
-        input.data.push_back(match color {
+        input.push_back(match color {
             Color::Black => "0".to_string(),
             Color::White => "1".to_string(),
         });
@@ -117,14 +118,14 @@ pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
             panels.last_mut().unwrap()
         };
 
-        if let Some(v) = output.data.pop_front() {
+        if let Some(v) = output.pop_front() {
             let color = Color::try_from(v)?;
             panel.color = color;
         } else {
             panic!("unexpected program state");
         }
 
-        if let Some(v) = output.data.pop_front() {
+        if let Some(v) = output.pop_front() {
             let turn_dir = TurnDir::try_from(v)?;
             robot_dir = robot_dir.turn(turn_dir);
             match robot_dir {
@@ -146,8 +147,8 @@ pub fn paint_hull(mut prog: Prog) -> Result<Vec<Panel>, Error> {
         }
     }
 
-    assert!(input.data.is_empty());
-    assert!(output.data.is_empty());
+    assert!(input.is_empty());
+    assert!(output.is_empty());
 
     Ok(panels)
 }
