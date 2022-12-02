@@ -2,7 +2,7 @@ use std::io;
 
 type ScoreTy = u32;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Outcome {
     Win,
     Lose,
@@ -10,7 +10,7 @@ enum Outcome {
 }
 
 impl Outcome {
-    fn score(&self) -> ScoreTy {
+    fn score(self) -> ScoreTy {
         use Outcome::{Draw, Lose, Win};
 
         match self {
@@ -19,9 +19,23 @@ impl Outcome {
             Draw => 3,
         }
     }
+
+    fn desired(s: &str) -> io::Result<Self> {
+        use Outcome::{Draw, Lose, Win};
+
+        match s {
+            "X" => Ok(Lose),
+            "Y" => Ok(Draw),
+            "Z" => Ok(Win),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "unknown outcome",
+            )),
+        }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Shape {
     Rock,
     Paper,
@@ -57,7 +71,7 @@ impl Shape {
         }
     }
 
-    fn score(&self) -> ScoreTy {
+    fn score(self) -> ScoreTy {
         use Shape::{Paper, Rock, Scissors};
 
         match self {
@@ -67,17 +81,26 @@ impl Shape {
         }
     }
 
-    fn play(&self, other: &Shape) -> Outcome {
+    fn play(self, other: Shape) -> Outcome {
+        use Outcome::{Draw, Lose, Win};
+        use Shape::{Paper, Rock, Scissors};
+
         match (self, other) {
-            (Shape::Rock, Shape::Rock)
-            | (Shape::Paper, Shape::Paper)
-            | (Shape::Scissors, Shape::Scissors) => Outcome::Draw,
-            (Shape::Rock, Shape::Scissors)
-            | (Shape::Paper, Shape::Rock)
-            | (Shape::Scissors, Shape::Paper) => Outcome::Win,
-            (Shape::Paper, Shape::Scissors)
-            | (Shape::Scissors, Shape::Rock)
-            | (Shape::Rock, Shape::Paper) => Outcome::Lose,
+            (Rock, Rock) | (Paper, Paper) | (Scissors, Scissors) => Draw,
+            (Rock, Scissors) | (Paper, Rock) | (Scissors, Paper) => Win,
+            (Paper, Scissors) | (Scissors, Rock) | (Rock, Paper) => Lose,
+        }
+    }
+
+    fn for_outcome(self, desired: Outcome) -> Self {
+        use Outcome::{Draw, Lose, Win};
+        use Shape::{Paper, Rock, Scissors};
+
+        match (self, desired) {
+            (_, Draw) => self,
+            (Rock, Lose) | (Paper, Win) => Scissors,
+            (Rock, Win) | (Scissors, Lose) => Paper,
+            (Paper, Lose) | (Scissors, Win) => Rock,
         }
     }
 }
@@ -90,11 +113,11 @@ fn main() -> io::Result<()> {
         let mut split_line = line.split_whitespace();
 
         match (split_line.next(), split_line.next(), split_line.next()) {
-            (Some(opponent_pick), Some(my_pick), None) => {
+            (Some(opponent_pick), Some(desired), None) => {
                 let opponent_pick = Shape::opponent_pick(opponent_pick)?;
-                let my_pick = Shape::my_pick(my_pick)?;
-                let outcome = my_pick.play(&opponent_pick);
-                total_score += my_pick.score() + outcome.score();
+                let desired = Outcome::desired(desired)?;
+                let my_pick = opponent_pick.for_outcome(desired);
+                total_score += my_pick.score() + desired.score();
             }
             _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, line)),
         }
