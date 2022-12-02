@@ -105,23 +105,30 @@ impl Shape {
     }
 }
 
-fn main() -> io::Result<()> {
-    let mut total_score = 0;
+fn parse_line(line: &str) -> io::Result<(Shape, Outcome)> {
+    let mut split_line = line.split_whitespace();
 
-    for line in io::stdin().lines() {
-        let line = line?;
-        let mut split_line = line.split_whitespace();
-
-        match (split_line.next(), split_line.next(), split_line.next()) {
-            (Some(opponent_pick), Some(desired), None) => {
-                let opponent_pick = Shape::opponent_pick(opponent_pick)?;
-                let desired = Outcome::desired(desired)?;
-                let my_pick = opponent_pick.for_outcome(desired);
-                total_score += my_pick.score() + desired.score();
-            }
-            _ => return Err(io::Error::new(io::ErrorKind::InvalidInput, line)),
-        }
+    match (split_line.next(), split_line.next(), split_line.next()) {
+        (Some(opponent_pick), Some(desired), None) => Ok((
+            Shape::opponent_pick(opponent_pick)?,
+            Outcome::desired(desired)?,
+        )),
+        _ => Err(io::Error::new(io::ErrorKind::InvalidInput, line)),
     }
+}
+
+fn fold_score(acc: ScoreTy, opponent_pick: Shape, outcome: Outcome) -> ScoreTy {
+    let my_pick = opponent_pick.for_outcome(outcome);
+    acc + my_pick.score() + outcome.score()
+}
+
+fn main() -> io::Result<()> {
+    let total_score = io::stdin()
+        .lines()
+        .map(|result| result.and_then(|s| parse_line(&s)))
+        .try_fold(0, |acc, result| {
+            result.map(|(opponent_pick, outcome)| fold_score(acc, opponent_pick, outcome))
+        })?;
 
     println!("{total_score}");
 
