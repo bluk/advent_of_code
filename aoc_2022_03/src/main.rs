@@ -14,27 +14,28 @@ fn priority(ch: char) -> io::Result<PriorityTy> {
     }
 }
 
-fn parse_group(line1: &str, line2: &str, line3: &str) -> io::Result<PriorityTy> {
-    line1
-        .chars()
-        .find(|needle| {
-            line2.chars().any(|ch| *needle == ch) && line3.chars().any(|ch| *needle == ch)
-        })
-        .map_or_else(
-            || {
-                Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "missing duplicate item type",
-                ))
-            },
-            priority,
-        )
+fn find_dup(line1: &str, line2: &str, line3: &str) -> Option<char> {
+    line1.chars().find(|needle| {
+        line2.chars().any(|ch| *needle == ch) && line3.chars().any(|ch| *needle == ch)
+    })
 }
 
 fn main() -> io::Result<()> {
     let sum = itertools::process_results(io::stdin().lines(), |it| {
-        it.batching(|it| Some(parse_group(&it.next()?, &it.next()?, &it.next()?)))
-            .try_fold(0, |acc, priority| priority.map(|priority| acc + priority))
+        it.tuples()
+            .map(|(a, b, c)| find_dup(&a, &b, &c))
+            .map(|item| {
+                item.map_or_else(
+                    || {
+                        Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "missing duplicate item type",
+                        ))
+                    },
+                    priority,
+                )
+            })
+            .sum::<Result<PriorityTy, _>>()
     })??;
 
     println!("{sum}");
