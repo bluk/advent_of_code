@@ -1,3 +1,4 @@
+use itertools::Itertools as _;
 use std::io;
 
 type PriorityTy = u32;
@@ -8,17 +9,17 @@ fn priority(ch: char) -> io::Result<PriorityTy> {
         'A'..='Z' => Ok(ch as u32 - 'A' as u32 + 1 + 26),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "missing duplicate item type",
+            "invalid item type",
         )),
     }
 }
 
-fn parse_line(line: &str) -> io::Result<PriorityTy> {
-    let compartment_len = line.len() / 2;
-    let (first, second) = line.split_at(compartment_len);
-    first
+fn parse_group(line1: &str, line2: &str, line3: &str) -> io::Result<PriorityTy> {
+    line1
         .chars()
-        .find(|c| second.chars().any(|c2| *c == c2))
+        .find(|needle| {
+            line2.chars().any(|ch| *needle == ch) && line3.chars().any(|ch| *needle == ch)
+        })
         .map_or_else(
             || {
                 Err(io::Error::new(
@@ -31,10 +32,10 @@ fn parse_line(line: &str) -> io::Result<PriorityTy> {
 }
 
 fn main() -> io::Result<()> {
-    let sum = io::stdin()
-        .lines()
-        .map(|line| line.and_then(|line| parse_line(&line)))
-        .try_fold(0, |acc, priority| priority.map(|priority| acc + priority))?;
+    let sum = itertools::process_results(io::stdin().lines(), |it| {
+        it.batching(|it| Some(parse_group(&it.next()?, &it.next()?, &it.next()?)))
+            .try_fold(0, |acc, priority| priority.map(|priority| acc + priority))
+    })??;
 
     println!("{sum}");
 
