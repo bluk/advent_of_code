@@ -29,12 +29,12 @@ fn main() -> io::Result<()> {
             }),
             |it| {
                 it.map(|(first, second)| {
-                    let first_contains_second =
-                        first.start() <= second.start() && first.end() >= second.end();
-                    let second_contains_first =
-                        second.start() <= first.start() && second.end() >= first.end();
+                    let first_overlaps_second =
+                        first.contains(second.start()) || first.contains(second.end());
+                    let second_overlaps_first =
+                        second.contains(first.start()) || second.contains(first.end());
 
-                    first_contains_second || second_contains_first
+                    first_overlaps_second || second_overlaps_first
                 })
                 .map(u32::from)
                 .sum::<u32>()
