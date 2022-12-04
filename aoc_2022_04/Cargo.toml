@@ -1,0 +1,8 @@
+[package]
+name = "aoc_2022_04"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.65"
+
+[dependencies]
+itertools = "0.10.5"
