@@ -76,10 +76,18 @@ fn main() -> io::Result<()> {
         for line in it {
             let cmd = parse_cmd(&line)?;
 
-            for _ in 0..cmd.count {
-                let item = stacks[cmd.from - 1].pop().unwrap();
-                stacks[cmd.to - 1].push(item);
-            }
+            let from = &mut stacks[cmd.from - 1];
+            let to_copy = from
+                .iter()
+                .rev()
+                .take(cmd.count)
+                .copied()
+                .rev()
+                .collect::<Vec<_>>();
+            from.truncate(from.len() - cmd.count);
+
+            let to = &mut stacks[cmd.to - 1];
+            to.extend(to_copy);
         }
 
         Ok::<_, io::Error>(())
