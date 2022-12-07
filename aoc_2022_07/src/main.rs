@@ -47,6 +47,20 @@ fn parse_line(line: &str) -> IResult<&str, Line<'_>> {
     ))(line)
 }
 
+fn dir_size(name: &str, filesystem: &HashMap<String, Vec<(u64, String)>>) -> u64 {
+    let contents = filesystem.get(name).expect("no contents for directory");
+
+    let parent_name = name.to_string() + ":";
+    contents.iter().map(|(size, _)| size).sum::<u64>()
+        + filesystem
+            .iter()
+            .filter_map(|(name, contents)| {
+                name.starts_with(&parent_name)
+                    .then(|| contents.iter().map(|(size, _)| size).sum::<u64>())
+            })
+            .sum::<u64>()
+}
+
 fn main() -> io::Result<()> {
     let filesystem = itertools::process_results(io::stdin().lines(), |it| {
         let mut filesystem: HashMap<String, Vec<(u64, String)>> = HashMap::default();
@@ -91,21 +105,14 @@ fn main() -> io::Result<()> {
         Ok::<_, io::Error>(filesystem)
     })??;
 
+    let filesystem_size = dir_size("/", &filesystem);
+    let needed_size = 30_000_000 - (70_000_000 - filesystem_size);
     let answer = filesystem
-        .iter()
-        .map(|(parent_name, contents)| {
-            let parent_name = parent_name.to_string() + ":";
-            contents.iter().map(|(size, _)| size).sum::<u64>()
-                + filesystem
-                    .iter()
-                    .filter_map(|(name, contents)| {
-                        name.starts_with(&parent_name)
-                            .then(|| contents.iter().map(|(size, _)| size).sum::<u64>())
-                    })
-                    .sum::<u64>()
-        })
-        .filter(|total| *total <= 100_000)
-        .sum::<u64>();
+        .keys()
+        .map(|name| dir_size(name, &filesystem))
+        .filter(|size| *size >= needed_size)
+        .min()
+        .expect("directory not found");
 
     println!("{answer}");
 
