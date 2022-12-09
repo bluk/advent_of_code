@@ -36,35 +36,32 @@ impl Position {
     }
 
     fn follow(self, other: Position) -> Self {
-        let diff_x = self.x - other.x;
-        let diff_y = self.y - other.y;
+        let diff_x = other.x - self.x;
+        let diff_y = other.y - self.y;
 
         match (diff_x, diff_y) {
             (0 | -1 | 1, 0 | -1 | 1) => self,
-            (0, -2) => self.move_dir(Direction::Up),
-            (1, -2) => self.move_dir(Direction::Up).move_dir(Direction::Left),
-            (-1, -2) => self.move_dir(Direction::Up).move_dir(Direction::Right),
-            (0, 2) => self.move_dir(Direction::Down),
-            (1, 2) => self.move_dir(Direction::Down).move_dir(Direction::Left),
-            (-1, 2) => self.move_dir(Direction::Down).move_dir(Direction::Right),
+            (0, 2) => self.move_dir(Direction::Up),
+            (0, -2) => self.move_dir(Direction::Down),
+            (-2, 0) => self.move_dir(Direction::Left),
+            (2, 0) => self.move_dir(Direction::Right),
 
-            (2, 0) => self.move_dir(Direction::Left),
-            (2, -1) => self.move_dir(Direction::Left).move_dir(Direction::Up),
-            (2, 1) => self.move_dir(Direction::Left).move_dir(Direction::Down),
+            (-2 | -1, 2) | (-2, 1) => self.move_dir(Direction::Left).move_dir(Direction::Up),
+            (1 | 2, 2) | (2, 1) => self.move_dir(Direction::Right).move_dir(Direction::Up),
 
-            (-2, 0) => self.move_dir(Direction::Right),
-            (-2, 1) => self.move_dir(Direction::Right).move_dir(Direction::Down),
-            (-2, -1) => self.move_dir(Direction::Right).move_dir(Direction::Up),
+            (2, -1 | -2) | (1, -2) => self.move_dir(Direction::Right).move_dir(Direction::Down),
+
+            (-2 | -1, -2) | (-2, -1) => self.move_dir(Direction::Left).move_dir(Direction::Down),
             _ => unreachable!(),
         }
     }
 }
 
-// * X X X *
-// X X X X *
+// X X X X X
+// X X X X X
 // X X S X X
-// X X X X *
-// * X X X *
+// X X X X X
+// X X X X X
 
 fn parse_line(line: &str) -> nom::IResult<&str, Movement> {
     use nom::{branch, bytes, character, combinator, sequence};
@@ -84,13 +81,25 @@ fn parse_line(line: &str) -> nom::IResult<&str, Movement> {
     )(line)
 }
 
+fn print_map(knots: &[Position]) {
+    for y in -20..=20 {
+        for x in -20..=20 {
+            if let Some(knot) = knots.iter().position(|pos| pos.y == y && pos.x == x) {
+                print!("{knot} ");
+            } else {
+                print!(". ");
+            }
+        }
+        println!();
+    }
+}
+
 fn main() -> io::Result<()> {
     let positions = itertools::process_results(io::stdin().lines(), |it| {
-        let mut head_pos = Position::default();
-        let mut tail_pos = Position::default();
+        let mut knots = [Position::default(); 10];
 
         let mut positions: HashSet<Position> = HashSet::default();
-        positions.insert(tail_pos);
+        positions.insert(knots[knots.len() - 1]);
 
         for line in it {
             let (remaining, head_move) = parse_line(&line)
@@ -98,10 +107,14 @@ fn main() -> io::Result<()> {
             assert_eq!("", remaining);
 
             for _ in 0..head_move.len {
-                head_pos = head_pos.move_dir(head_move.dir);
-                tail_pos = tail_pos.follow(head_pos);
-                positions.insert(tail_pos);
+                knots[0] = knots[0].move_dir(head_move.dir);
+                for i in 1..knots.len() {
+                    knots[i] = knots[i].follow(knots[i - 1]);
+                }
+                positions.insert(knots[knots.len() - 1]);
             }
+
+            // print_map(&knots);
         }
 
         Ok::<_, io::Error>(positions)
