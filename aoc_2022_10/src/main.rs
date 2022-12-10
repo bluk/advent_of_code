@@ -48,10 +48,9 @@ fn parse_line(line: &str) -> nom::IResult<&str, Instruction> {
 }
 
 fn main() -> io::Result<()> {
-    let answer = itertools::process_results(io::stdin().lines(), |lines| {
+    itertools::process_results(io::stdin().lines(), |lines| {
         let mut cpu = Cpu::default();
-        let mut cycle = 0;
-        let mut signal_sum = 0;
+        let mut pos = 0;
 
         for line in lines {
             let (remaining, inst) = parse_line(&line)
@@ -59,10 +58,16 @@ fn main() -> io::Result<()> {
             assert_eq!("", remaining);
 
             for _ in 0..inst.num_cycles() {
-                cycle += 1;
+                if (cpu.reg_x - 1..=cpu.reg_x + 1).contains(&pos) {
+                    print!("#");
+                } else {
+                    print!(".");
+                }
 
-                if (cycle == 20) || ((60..=220).contains(&cycle) && (cycle - 20) % 40 == 0) {
-                    signal_sum += cycle * cpu.reg_x;
+                pos += 1;
+                if pos % 40 == 0 {
+                    println!();
+                    pos = 0;
                 }
             }
 
@@ -72,10 +77,8 @@ fn main() -> io::Result<()> {
             }
         }
 
-        Ok::<_, io::Error>(signal_sum)
+        Ok::<_, io::Error>(())
     })??;
-
-    println!("{answer}");
 
     Ok(())
 }
