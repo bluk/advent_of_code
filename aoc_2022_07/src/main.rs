@@ -54,10 +54,7 @@ fn dir_size(name: &str, filesystem: &HashMap<String, Vec<(u64, String)>>) -> u64
     contents.iter().map(|(size, _)| size).sum::<u64>()
         + filesystem
             .iter()
-            .filter_map(|(name, contents)| {
-                name.starts_with(&parent_name)
-                    .then(|| contents.iter().map(|(size, _)| size).sum::<u64>())
-            })
+            .filter(|&(name, _contents)| name.starts_with(&parent_name)).map(|(_name, contents)| contents.iter().map(|(size, _)| size).sum::<u64>())
             .sum::<u64>()
 }
 

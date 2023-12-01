@@ -17,16 +17,16 @@ fn main() {
                         total_fuel_req += find_fuel_required(mass);
                     }
                     Err(e) => {
-                        eprintln!("input: {}, error: {}", input, e);
+                        eprintln!("input: {input}, error: {e}");
                         break;
                     }
                 };
             }
             Err(e) => {
-                eprintln!("error: {}", e);
+                eprintln!("error: {e}");
                 break;
             }
         }
     }
-    println!("{}", total_fuel_req);
+    println!("{total_fuel_req}");
 }

@@ -81,7 +81,7 @@ pub fn run_loop(mut prog: Prog) -> Result<i64, Error> {
                                 y: y.parse::<i64>()?,
                             },
                             tile_id: Type::from_str(&id)?,
-                        })
+                        });
                     }
                 } else {
                     panic!("unexpected program state");

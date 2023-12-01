@@ -24,9 +24,9 @@ impl error::Error for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::IoErr(e) => Display::fmt(&*e, f),
-            Error::TryFromIntError(e) => Display::fmt(&*e, f),
-            Error::ParseIntError(e) => Display::fmt(&*e, f),
+            Error::IoErr(e) => Display::fmt(e, f),
+            Error::TryFromIntError(e) => Display::fmt(e, f),
+            Error::ParseIntError(e) => Display::fmt(e, f),
         }
     }
 }

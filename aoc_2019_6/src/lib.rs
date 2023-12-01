@@ -6,8 +6,14 @@ pub struct OrbitMap {
     map: HashMap<String, String>,
 }
 
+impl Default for OrbitMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OrbitMap {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         OrbitMap {
             map: HashMap::new(),
         }
@@ -33,7 +39,7 @@ impl OrbitMap {
         }
     }
 
-    pub fn total_orbits(&self) -> Option<usize> {
+    #[must_use] pub fn total_orbits(&self) -> Option<usize> {
         let total_orbits: usize = self.map.keys().filter_map(|k| self.orbits_for(k)).sum();
         if total_orbits == 0 {
             None
@@ -58,14 +64,14 @@ impl OrbitMap {
         }
     }
 
-    pub fn orbital_transfers_between(&self, you: &str, san: &str) -> Option<usize> {
+    #[must_use] pub fn orbital_transfers_between(&self, you: &str, san: &str) -> Option<usize> {
         if let Some(you_orbits_to_com) = self.orbits_to_com_for(you) {
             if let Some(san_orbits_to_com) = self.orbits_to_com_for(san) {
                 let common: usize = you_orbits_to_com
                     .iter()
                     .rev()
                     .zip(san_orbits_to_com.iter().rev())
-                    .map(|(y, s)| if y == s { 1 } else { 0 })
+                    .map(|(y, s)| usize::from(y == s))
                     .sum();
 
                 let transfers =
@@ -80,7 +86,7 @@ impl OrbitMap {
 }
 
 /// Parse an orbit of a planet.
-pub fn parse_orbit(input: &str) -> (&str, &str) {
+#[must_use] pub fn parse_orbit(input: &str) -> (&str, &str) {
     let input = input.trim().split(')').collect::<Vec<&str>>();
     assert_eq!(input.len(), 2);
     (input[0], input[1])
@@ -117,7 +123,7 @@ K)L
         input
             .trim()
             .split('\n')
-            .map(|s| parse_orbit(s))
+            .map(parse_orbit)
             .for_each(|(object_orbits, object)| orbit_map.insert(object, object_orbits));
 
         assert_eq!(orbit_map.orbits_for("D"), Some(3));
@@ -147,7 +153,7 @@ I)SAN";
         input
             .trim()
             .split('\n')
-            .map(|s| parse_orbit(s))
+            .map(parse_orbit)
             .for_each(|(object_orbits, object)| orbit_map.insert(object, object_orbits));
 
         assert_eq!(orbit_map.orbital_transfers_between("YOU", "SAN"), Some(4));

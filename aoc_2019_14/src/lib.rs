@@ -10,9 +10,9 @@ pub fn parse_line(s: &str) -> Result<(String, u64, HashMap<String, u64>), Error>
     let mut chems = s.trim().split("=>");
 
     let mut input = HashMap::new();
-    let input_chems = chems.next().unwrap().trim().split(",");
+    let input_chems = chems.next().unwrap().trim().split(',');
     for ic in input_chems {
-        let mut ic = ic.trim().split(" ");
+        let mut ic = ic.trim().split(' ');
         let quantity = ic.next().unwrap();
         let quantity = quantity.parse::<u64>()?;
         let chem = ic.next().unwrap().to_string();
@@ -20,7 +20,7 @@ pub fn parse_line(s: &str) -> Result<(String, u64, HashMap<String, u64>), Error>
         assert!(ic.next().is_none());
     }
 
-    let mut output_chem = chems.next().unwrap().trim().split(" ");
+    let mut output_chem = chems.next().unwrap().trim().split(' ');
     let quantity = output_chem.next().unwrap();
     let quantity = quantity.parse::<u64>()?;
     let chem = output_chem.next().unwrap();
@@ -35,7 +35,7 @@ pub fn parse_reactions(input: &str) -> Result<Reactions, Error> {
         if line.trim().is_empty() {
             continue;
         }
-        let (output_chem, output_qty, input_chems) = parse_line(&line)?;
+        let (output_chem, output_qty, input_chems) = parse_line(line)?;
         reactions.insert(output_chem, (output_qty, input_chems));
     }
 
@@ -192,7 +192,7 @@ mod test {
         ";
 
         let reactions = parse_reactions(input).unwrap();
-        assert_eq!(180697, find_ore_for_fuel(&reactions, 1).unwrap());
+        assert_eq!(180_697, find_ore_for_fuel(&reactions, 1).unwrap());
     }
 
     #[test]
@@ -218,7 +218,7 @@ mod test {
         ";
 
         let reactions = parse_reactions(input).unwrap();
-        assert_eq!(2210736, find_ore_for_fuel(&reactions, 1).unwrap());
+        assert_eq!(2_210_736, find_ore_for_fuel(&reactions, 1).unwrap());
     }
 
     #[test]
@@ -237,8 +237,8 @@ mod test {
 
         let reactions = parse_reactions(input).unwrap();
         assert_eq!(
-            82892753,
-            find_fuel_for_ore(&reactions, 1000000000000).unwrap()
+            82_892_753,
+            find_fuel_for_ore(&reactions, 1_000_000_000_000).unwrap()
         );
     }
 
@@ -261,8 +261,8 @@ mod test {
 
         let reactions = parse_reactions(input).unwrap();
         assert_eq!(
-            5586022,
-            find_fuel_for_ore(&reactions, 1000000000000).unwrap()
+            5_586_022,
+            find_fuel_for_ore(&reactions, 1_000_000_000_000).unwrap()
         );
     }
 
@@ -290,8 +290,8 @@ mod test {
 
         let reactions = parse_reactions(input).unwrap();
         assert_eq!(
-            460664,
-            find_fuel_for_ore(&reactions, 1000000000000).unwrap()
+            460_664,
+            find_fuel_for_ore(&reactions, 1_000_000_000_000).unwrap()
         );
     }
 }

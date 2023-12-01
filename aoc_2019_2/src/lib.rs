@@ -5,7 +5,7 @@ pub fn parse_input(input: &str) -> Result<Vec<usize>, std::num::ParseIntError> {
         .collect::<Result<Vec<usize>, std::num::ParseIntError>>()
 }
 
-pub fn run_prog(input: &[usize]) -> Vec<usize> {
+#[must_use] pub fn run_prog(input: &[usize]) -> Vec<usize> {
     let mut idx = 0;
     let mut output = Vec::with_capacity(input.len());
     output.extend_from_slice(input);

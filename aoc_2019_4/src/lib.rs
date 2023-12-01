@@ -1,11 +1,11 @@
 use std::ops::RangeInclusive;
 
-pub fn find_possible_passwords(rng: RangeInclusive<u32>) -> Vec<u32> {
+#[must_use] pub fn find_possible_passwords(rng: RangeInclusive<u32>) -> Vec<u32> {
     rng.filter(|p| is_possible_password(*p)).collect()
 }
 
 fn is_possible_password(p: u32) -> bool {
-    if p < 100000 || p > 999999 {
+    if !(100_000..=999_999).contains(&p) {
         return false;
     }
 
@@ -30,7 +30,7 @@ fn is_possible_password(p: u32) -> bool {
         }
         last_digit = cur_digit;
 
-        remainder = remainder % m;
+        remainder %= m;
     }
 
     if repeated_digit_counter == 1 {
@@ -46,36 +46,36 @@ mod test {
 
     #[test]
     fn is_possible_ex1() {
-        assert!(!is_possible_password(111111));
+        assert!(!is_possible_password(111_111));
     }
 
     #[test]
     fn is_possible_ex2() {
-        assert!(!is_possible_password(111123));
+        assert!(!is_possible_password(111_123));
     }
 
     #[test]
     fn is_possible_ex3() {
-        assert!(!is_possible_password(223450));
+        assert!(!is_possible_password(223_450));
     }
 
     #[test]
     fn is_possible_ex4() {
-        assert!(!is_possible_password(123789));
+        assert!(!is_possible_password(123_789));
     }
 
     #[test]
     fn is_possible_ex5() {
-        assert!(is_possible_password(112233));
+        assert!(is_possible_password(112_233));
     }
 
     #[test]
     fn is_possible_ex6() {
-        assert!(!is_possible_password(123444));
+        assert!(!is_possible_password(123_444));
     }
 
     #[test]
     fn is_possible_ex7() {
-        assert!(is_possible_password(111122));
+        assert!(is_possible_password(111_122));
     }
 }

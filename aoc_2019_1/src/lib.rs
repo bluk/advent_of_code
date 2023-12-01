@@ -5,6 +5,7 @@
 ///
 /// assert_eq!(2, find_fuel_required(12));
 /// ```
+#[must_use]
 pub fn find_fuel_required(mass: u32) -> u32 {
     let mut result = mass / 3;
     if result < 2 {

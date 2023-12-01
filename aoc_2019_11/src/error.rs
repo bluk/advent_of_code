@@ -18,9 +18,9 @@ impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::IoErr(e) => Display::fmt(&*e, f),
-            Error::ParseNumError(e) => Display::fmt(&*e, f),
-            Error::TryFromIntError(e) => Display::fmt(&*e, f),
+            Error::IoErr(e) => Display::fmt(e, f),
+            Error::ParseNumError(e) => Display::fmt(e, f),
+            Error::TryFromIntError(e) => Display::fmt(e, f),
             Error::NoAvailableInput => f.write_str("no available input"),
             Error::UnknownValue => f.write_str("unknown value"),
         }

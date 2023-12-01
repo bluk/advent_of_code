@@ -83,7 +83,7 @@ impl Eq for Dir {}
 fn detectable_asteriods(starting_pos: &Pos, map: &[Pos]) -> Result<Vec<Pos>, Error> {
     let mut nearest: Vec<(Pos, Dir)> = vec![];
 
-    for p in map.iter() {
+    for p in map {
         if p == starting_pos {
             continue;
         }
@@ -104,7 +104,7 @@ fn detectable_asteriods(starting_pos: &Pos, map: &[Pos]) -> Result<Vec<Pos>, Err
         }
 
         if !found_same_dir {
-            nearest.push((*p, d))
+            nearest.push((*p, d));
         }
     }
 
@@ -160,6 +160,7 @@ pub struct VaporizeIter {
 }
 
 impl VaporizeIter {
+    #[must_use]
     pub fn new(starting_pos: &Pos, map: &[Pos]) -> Self {
         let mut m = Vec::with_capacity(map.len());
         m.extend_from_slice(map);

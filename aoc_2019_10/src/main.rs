@@ -12,12 +12,12 @@ fn main() -> Result<(), Error> {
     let map = aoc_2019_10::build_map(&input)?;
 
     let (pos, count) = aoc_2019_10::find_best_monitoring_pos(&map)?.unwrap();
-    println!("{:?} - {}", pos, count);
+    println!("{pos:?} - {count}");
 
-    let iter = VaporizeIter::new(&pos, &map);
+    let iter = VaporizeIter::new(pos, &map);
     let mut iter = iter.skip(199);
     let asteriod200 = iter.next().unwrap();
-    println!("200th asteriod vaporized: {:?}", asteriod200);
+    println!("200th asteriod vaporized: {asteriod200:?}");
     println!("{}", asteriod200.x * 100 + asteriod200.y);
 
     Ok(())

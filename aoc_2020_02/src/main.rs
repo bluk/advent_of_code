@@ -5,11 +5,11 @@ fn main() {
 
     for line in io::stdin().lock().lines() {
         let line = line.expect("Line to be readable");
-        let mut space_split = line.split(" ");
+        let mut space_split = line.split(' ');
 
         match (space_split.next(), space_split.next(), space_split.next()) {
             (Some(count), Some(ch), Some(password)) => {
-                let mut split_count = count.split("-");
+                let mut split_count = count.split('-');
                 let (first_pos, second_pos): (usize, usize) =
                     match (split_count.next(), split_count.next()) {
                         (Some(min), Some(max)) => (
@@ -40,5 +40,5 @@ fn main() {
         }
     }
 
-    println!("Valid Password Count: {}", valid_count);
+    println!("Valid Password Count: {valid_count}");
 }

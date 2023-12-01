@@ -27,8 +27,7 @@ fn build_input(existing_input: &[i64], rng: Range<i64>, count: i64) -> Vec<Vec<i
     } else {
         inputs
             .into_iter()
-            .map(|i| build_input(&i, rng.clone(), count - 1))
-            .flatten()
+            .flat_map(|i| build_input(&i, rng.clone(), count - 1))
             .collect()
     }
 }
@@ -99,9 +98,9 @@ fn run_amplifiers_in_feedback_loop(
     let mut prog_output = VecDeque::<String>::new();
     loop {
         for amp in &mut amps {
-            prog_output.iter().for_each(|o| {
+            for o in &prog_output {
                 amp.prog_input.push_back(o.to_string());
-            });
+            }
 
             prog_output = VecDeque::<String>::new();
 
@@ -229,7 +228,7 @@ mod tests {
 
         let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[9, 8, 7, 6, 5]).unwrap();
 
-        assert_eq!(result, Some(139629729));
+        assert_eq!(result, Some(139_629_729));
     }
 
     #[test]
@@ -243,7 +242,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(result.0, vec![9, 8, 7, 6, 5]);
-        assert_eq!(result.1, 139629729);
+        assert_eq!(result.1, 139_629_729);
     }
 
     #[test]

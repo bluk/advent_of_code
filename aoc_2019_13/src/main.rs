@@ -11,7 +11,7 @@ fn main() -> Result<(), Error> {
     let prog = Prog::new(&mem_state);
     let score = aoc_2019_13::arcade::run_loop(prog)?;
 
-    println!("{}", score);
+    println!("{score}");
 
     Ok(())
 }

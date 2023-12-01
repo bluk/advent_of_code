@@ -23,7 +23,7 @@ pub struct Moon {
 }
 
 impl Moon {
-    pub fn new(x: i64, y: i64, z: i64) -> Self {
+    #[must_use] pub fn new(x: i64, y: i64, z: i64) -> Self {
         Moon {
             pos: Pos { x, y, z },
             vel: Vel { x: 0, y: 0, z: 0 },
@@ -103,7 +103,7 @@ pub struct TimeStepIter {
 }
 
 impl TimeStepIter {
-    pub fn new(moons: Vec<Moon>) -> Self {
+    #[must_use] pub fn new(moons: Vec<Moon>) -> Self {
         TimeStepIter { moons }
     }
 }
@@ -117,7 +117,7 @@ impl Iterator for TimeStepIter {
     }
 }
 
-pub fn total_energy(moons: &[Moon]) -> i64 {
+#[must_use] pub fn total_energy(moons: &[Moon]) -> i64 {
     moons
         .iter()
         .map(|m| {
@@ -128,7 +128,7 @@ pub fn total_energy(moons: &[Moon]) -> i64 {
         .sum()
 }
 
-pub fn find_cycle(axis_pos: Vec<i64>) -> i64 {
+#[must_use] pub fn find_cycle(axis_pos: Vec<i64>) -> i64 {
     let mut moons = axis_pos
         .into_iter()
         .map(|p| (p, 0))
@@ -142,13 +142,13 @@ pub fn find_cycle(axis_pos: Vec<i64>) -> i64 {
             .iter()
             .copied()
             .map(|mut nm| {
-                moons.iter().for_each(|m| {
+                for m in &moons {
                     if nm.0 < m.0 {
                         nm.1 += 1;
                     } else if nm.0 > m.0 {
                         nm.1 -= 1;
                     }
-                });
+                }
 
                 nm.0 += nm.1;
                 nm

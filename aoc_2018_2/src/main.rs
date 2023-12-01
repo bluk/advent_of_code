@@ -21,7 +21,7 @@ fn find_off_by(a: &str, b: &str) -> usize {
 }
 
 fn common_chars(a: &str, b: &str) -> String {
-    let mut ret = String::from("");
+    let mut ret = String::new();
 
     let chars = a.chars().zip(b.chars());
     for (a, b) in chars {
@@ -44,7 +44,7 @@ fn main() {
                     break;
                 }
 
-                for i in ids.iter() {
+                for i in &ids {
                     let off_by_count = find_off_by(i, &input);
                     if off_by_count <= 1 {
                         println!("{}", common_chars(i, &input));
@@ -55,7 +55,7 @@ fn main() {
                 ids.push(input);
             }
             Err(e) => {
-                eprintln!("error: {}", e);
+                eprintln!("error: {e}");
                 break;
             }
         }

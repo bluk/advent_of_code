@@ -25,7 +25,7 @@ pub trait ProgOutput {
 pub struct StdInProgInput {}
 
 impl StdInProgInput {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         StdInProgInput {}
     }
 }
@@ -43,14 +43,14 @@ impl ProgInput for StdInProgInput {
 pub struct StdOutProgOutput {}
 
 impl StdOutProgOutput {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         StdOutProgOutput {}
     }
 }
 
 impl ProgOutput for StdOutProgOutput {
     fn write(&mut self, output: &str) -> Result<(), Error> {
-        println!("{}", output);
+        println!("{output}");
         Ok(())
     }
 }
@@ -173,15 +173,15 @@ where
     loop {
         match decode_op_code(mem_state[pc]) {
             OpCode::Add(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(mem_state, pc, 1, param_mode_1)?;
                 let store_pc = usize::try_from(mem_state[pc + 3])?;
                 mem_state[store_pc] = operand_0 + operand_1;
                 pc += 4;
             }
             OpCode::Mul(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(mem_state, pc, 1, param_mode_1)?;
                 let store_pc = usize::try_from(mem_state[pc + 3])?;
                 mem_state[store_pc] = operand_0 * operand_1;
                 pc += 4;
@@ -199,40 +199,40 @@ where
                 pc += 2;
             }
             OpCode::Output(param_mode_0) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
-                output.write(&format!("{}", operand_0))?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
+                output.write(&format!("{operand_0}"))?;
                 pc += 2;
             }
             OpCode::JumpIfTrue(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
                 if operand_0 != 0 {
-                    let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                    let operand_1 = get_operand(mem_state, pc, 1, param_mode_1)?;
                     pc = usize::try_from(operand_1)?;
                 } else {
                     pc += 3;
                 }
             }
             OpCode::JumpIfFalse(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
                 if operand_0 == 0 {
-                    let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                    let operand_1 = get_operand(mem_state, pc, 1, param_mode_1)?;
                     pc = usize::try_from(operand_1)?;
                 } else {
                     pc += 3;
                 }
             }
             OpCode::LessThan(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(mem_state, pc, 1, param_mode_1)?;
                 let store_pc = usize::try_from(mem_state[pc + 3])?;
-                mem_state[store_pc] = if operand_0 < operand_1 { 1 } else { 0 };
+                mem_state[store_pc] = i64::from(operand_0 < operand_1);
                 pc += 4;
             }
             OpCode::Equals(param_mode_0, param_mode_1) => {
-                let operand_0 = get_operand(&mem_state, pc, 0, param_mode_0)?;
-                let operand_1 = get_operand(&mem_state, pc, 1, param_mode_1)?;
+                let operand_0 = get_operand(mem_state, pc, 0, param_mode_0)?;
+                let operand_1 = get_operand(mem_state, pc, 1, param_mode_1)?;
                 let store_pc = usize::try_from(mem_state[pc + 3])?;
-                mem_state[store_pc] = if operand_0 == operand_1 { 1 } else { 0 };
+                mem_state[store_pc] = i64::from(operand_0 == operand_1);
                 pc += 4;
             }
 
@@ -307,8 +307,7 @@ fn build_input(existing_input: &[i64], rng: Range<i64>, count: i64) -> Vec<Vec<i
     } else {
         inputs
             .into_iter()
-            .map(|i| build_input(&i, rng.clone(), count - 1))
-            .flatten()
+            .flat_map(|i| build_input(&i, rng.clone(), count - 1))
             .collect()
     }
 }
@@ -1040,7 +1039,7 @@ mod tests {
 
         let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[9, 8, 7, 6, 5]).unwrap();
 
-        assert_eq!(result, Some(139629729));
+        assert_eq!(result, Some(139_629_729));
     }
 
     #[test]
@@ -1054,7 +1053,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(result.0, vec![9, 8, 7, 6, 5]);
-        assert_eq!(result.1, 139629729);
+        assert_eq!(result.1, 139_629_729);
     }
 
     #[test]

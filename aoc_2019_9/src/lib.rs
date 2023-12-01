@@ -25,7 +25,7 @@ pub trait ProgOutput {
 pub struct StdInProgInput {}
 
 impl StdInProgInput {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         StdInProgInput {}
     }
 }
@@ -43,14 +43,14 @@ impl ProgInput for StdInProgInput {
 pub struct StdOutProgOutput {}
 
 impl StdOutProgOutput {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         StdOutProgOutput {}
     }
 }
 
 impl ProgOutput for StdOutProgOutput {
     fn write(&mut self, output: &str) -> Result<(), Error> {
-        println!("{}", output);
+        println!("{output}");
         Ok(())
     }
 }
@@ -127,7 +127,7 @@ pub struct Prog {
 }
 
 impl Prog {
-    pub fn new(init_mem_state: &[i64]) -> Self {
+    #[must_use] pub fn new(init_mem_state: &[i64]) -> Self {
         let mut mem_state = vec![0; init_mem_state.len()];
         mem_state.copy_from_slice(init_mem_state);
 
@@ -226,7 +226,7 @@ impl Prog {
                 }
                 OpCode::Output => {
                     let operand_0 = self.get_operand(0, op_code)?;
-                    output.write(&format!("{}", operand_0))?;
+                    output.write(&format!("{operand_0}"))?;
                     self.pc += 2;
                 }
                 OpCode::JumpIfTrue => {
@@ -250,13 +250,13 @@ impl Prog {
                 OpCode::LessThan => {
                     let operand_0 = self.get_operand(0, op_code)?;
                     let operand_1 = self.get_operand(1, op_code)?;
-                    self.store_value(if operand_0 < operand_1 { 1 } else { 0 }, 2, op_code)?;
+                    self.store_value(i64::from(operand_0 < operand_1), 2, op_code)?;
                     self.pc += 4;
                 }
                 OpCode::Equals => {
                     let operand_0 = self.get_operand(0, op_code)?;
                     let operand_1 = self.get_operand(1, op_code)?;
-                    self.store_value(if operand_0 == operand_1 { 1 } else { 0 }, 2, op_code)?;
+                    self.store_value(i64::from(operand_0 == operand_1), 2, op_code)?;
                     self.pc += 4;
                 }
                 OpCode::AdjustsRelativeBase => {
@@ -340,8 +340,7 @@ fn build_input(existing_input: &[i64], rng: Range<i64>, count: i64) -> Vec<Vec<i
     } else {
         inputs
             .into_iter()
-            .map(|i| build_input(&i, rng.clone(), count - 1))
-            .flatten()
+            .flat_map(|i| build_input(&i, rng.clone(), count - 1))
             .collect()
     }
 }
@@ -502,7 +501,7 @@ mod tests {
 
     fn run_prog_no_input_or_output(mem_state: &[i64]) -> Prog {
         let mut test_output = TestOutput::new();
-        let mut prog = Prog::new(&mem_state);
+        let mut prog = Prog::new(mem_state);
         prog.run(&mut TestInput::new(vec![]), &mut test_output)
             .unwrap();
         assert_eq!(ProgState::Halt, prog.state);
@@ -984,7 +983,7 @@ mod tests {
 
         let result = run_amplifiers_in_feedback_loop(&mut mem_state, &[9, 8, 7, 6, 5]).unwrap();
 
-        assert_eq!(result, Some(139629729));
+        assert_eq!(result, Some(139_629_729));
     }
 
     #[test]
@@ -998,7 +997,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(result.0, vec![9, 8, 7, 6, 5]);
-        assert_eq!(result.1, 139629729);
+        assert_eq!(result.1, 139_629_729);
     }
 
     #[test]
@@ -1053,7 +1052,7 @@ mod tests {
 
     #[test]
     fn day9_ex2() {
-        let mem_state = vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0];
+        let mem_state = vec![1102, 34_915_192, 34_915_192, 7, 4, 7, 99, 0];
         let mut test_output = TestOutput::new();
 
         let mut prog = Prog::new(&mem_state);
@@ -1066,7 +1065,7 @@ mod tests {
 
     #[test]
     fn day9_ex3() {
-        let mem_state = vec![104, 1125899906842624, 99];
+        let mem_state = vec![104, 1_125_899_906_842_624, 99];
         let mut test_output = TestOutput::new();
 
         let mut prog = Prog::new(&mem_state);
@@ -1074,6 +1073,6 @@ mod tests {
             .unwrap();
         assert_eq!(ProgState::Halt, prog.state);
 
-        assert_eq!(vec![1125899906842624i64.to_string()], test_output.output);
+        assert_eq!(vec![1_125_899_906_842_624_i64.to_string()], test_output.output);
     }
 }

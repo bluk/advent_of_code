@@ -23,8 +23,14 @@ pub trait ProgOutput {
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct StdInProgInput {}
 
+impl Default for StdInProgInput {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StdInProgInput {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         StdInProgInput {}
     }
 }
@@ -41,15 +47,21 @@ impl ProgInput for StdInProgInput {
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct StdOutProgOutput {}
 
+impl Default for StdOutProgOutput {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StdOutProgOutput {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         StdOutProgOutput {}
     }
 }
 
 impl ProgOutput for StdOutProgOutput {
     fn write(&mut self, output: &str) -> Result<(), Error> {
-        println!("{}", output);
+        println!("{output}");
         Ok(())
     }
 }
@@ -191,7 +203,7 @@ where
             }
             OpCode::Output(param_mode_0) => {
                 let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
-                output.write(&format!("{}", operand_0))?;
+                output.write(&format!("{operand_0}"))?;
                 idx += 2;
             }
             OpCode::JumpIfTrue(param_mode_0, param_mode_1) => {
@@ -216,14 +228,14 @@ where
                 let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
                 let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
                 let store_idx = usize::try_from(mem_state[idx + 3])?;
-                mem_state[store_idx] = if operand_0 < operand_1 { 1 } else { 0 };
+                mem_state[store_idx] = i64::from(operand_0 < operand_1);
                 idx += 4;
             }
             OpCode::Equals(param_mode_0, param_mode_1) => {
                 let operand_0 = get_operand(&mem_state, idx, 0, param_mode_0)?;
                 let operand_1 = get_operand(&mem_state, idx, 1, param_mode_1)?;
                 let store_idx = usize::try_from(mem_state[idx + 3])?;
-                mem_state[store_idx] = if operand_0 == operand_1 { 1 } else { 0 };
+                mem_state[store_idx] = i64::from(operand_0 == operand_1);
                 idx += 4;
             }
 

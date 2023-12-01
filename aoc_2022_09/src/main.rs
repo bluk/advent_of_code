@@ -40,7 +40,7 @@ impl Position {
         let diff_y = other.y - self.y;
 
         match (diff_x, diff_y) {
-            (0 | -1 | 1, 0 | -1 | 1) => self,
+            (-1..=1, -1..=1) => self,
             (0, 2) => self.move_dir(Direction::Up),
             (0, -2) => self.move_dir(Direction::Down),
             (-2, 0) => self.move_dir(Direction::Left),

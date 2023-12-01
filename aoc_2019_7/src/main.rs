@@ -8,10 +8,10 @@ fn main() -> Result<(), Error> {
     let mem_state = aoc_2019_7::parse_mem_state(&input)?;
 
     let result = aoc_2019_7::find_max_thrust_signal(&mem_state)?;
-    println!("{:?}", result);
+    println!("{result:?}");
 
     let result = aoc_2019_7::find_max_thrust_signal_in_feedback_loop(&mem_state)?;
-    println!("{:?}", result);
+    println!("{result:?}");
 
     Ok(())
 }

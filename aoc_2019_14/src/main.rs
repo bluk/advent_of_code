@@ -18,10 +18,10 @@ fn main() -> Result<(), Error> {
     }
 
     let ore_count = aoc_2019_14::find_ore_for_fuel(&reactions, 1)?;
-    println!("{}", ore_count);
+    println!("{ore_count}");
 
-    let fuel_count = aoc_2019_14::find_fuel_for_ore(&reactions, 1000000000000)?;
-    println!("{}", fuel_count);
+    let fuel_count = aoc_2019_14::find_fuel_for_ore(&reactions, 1_000_000_000_000)?;
+    println!("{fuel_count}");
 
     Ok(())
 }

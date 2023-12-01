@@ -1,6 +1,6 @@
 use std::io::{self};
 
-use aoc_2019_2;
+
 
 fn main() {
     let mut input = String::new();
@@ -13,7 +13,7 @@ fn main() {
                         prog[2] = verb;
 
                         let output = aoc_2019_2::run_prog(&prog);
-                        if output[0] == 19690720 {
+                        if output[0] == 19_690_720 {
                             break 'end;
                         }
                     }
@@ -22,11 +22,11 @@ fn main() {
                 println!("{}", 100 * prog[1] + prog[2]);
             }
             Err(e) => {
-                eprintln!("error: {}", e);
+                eprintln!("error: {e}");
             }
         },
         Err(e) => {
-            eprintln!("error: {}", e);
+            eprintln!("error: {e}");
         }
     }
 }

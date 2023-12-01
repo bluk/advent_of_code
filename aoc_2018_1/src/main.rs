@@ -21,20 +21,20 @@ fn main() {
                         freq_change_input.push(change);
                     }
                     Err(e) => {
-                        eprintln!("input: {}, error: {}", input, e);
+                        eprintln!("input: {input}, error: {e}");
                         break;
                     }
                 };
             }
             Err(e) => {
-                eprintln!("error: {}", e);
+                eprintln!("error: {e}");
                 break;
             }
         }
     }
 
     'quit: loop {
-        for change in freq_change_input.iter() {
+        for change in &freq_change_input {
             freq += change;
 
             if freq_hist.contains(&freq) {
@@ -45,5 +45,5 @@ fn main() {
         }
     }
 
-    println!("{}", freq);
+    println!("{freq}");
 }

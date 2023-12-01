@@ -42,7 +42,7 @@ impl<'a> Iterator for SpaceImgIter<'a> {
 }
 
 impl SpaceImg {
-    pub fn new(pixels: Vec<u8>, width: usize, height: usize) -> Self {
+    #[must_use] pub fn new(pixels: Vec<u8>, width: usize, height: usize) -> Self {
         SpaceImg {
             pixels,
             width,
@@ -97,7 +97,7 @@ impl SpaceImg {
             .fold(vec![2; self.width * self.height], |final_img, layer| {
                 layer
                     .iter()
-                    .zip(final_img.into_iter())
+                    .zip(final_img)
                     .map(|(l, f)| if f == 2 { *l } else { f })
                     .collect()
             }))

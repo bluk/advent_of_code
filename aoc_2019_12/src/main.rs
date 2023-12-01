@@ -23,7 +23,7 @@ fn main() -> Result<(), Error> {
 
     let min_cycle = x_cycle.lcm(&y_cycle).lcm(&z_cycle);
 
-    println!("{}", min_cycle);
+    println!("{min_cycle}");
 
     Ok(())
 }
